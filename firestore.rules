@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function onlyKeys(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    match /users/{uid} {
+      allow read: if signed() && request.auth.uid == uid;
+      allow create: if signed() && request.auth.uid == uid && request.resource.data.role in ['patient', 'pharmacy'];
+      allow update: if signed() && request.auth.uid == uid && request.resource.data.role == resource.data.role;
+    }
+    match /pharmacies/{pid} {
+      allow read: if true;
+      allow create: if signed() && request.auth.uid == pid
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'pharmacy'
+        && request.resource.data.verified == false;
+      allow update: if signed() && request.auth.uid == pid
+        && request.resource.data.verified == resource.data.verified
+        && request.resource.data.status == resource.data.status;
+    }
+    match /products/{id} {
+      allow read: if true;
+      allow create: if signed() && request.resource.data.pharmacyId == request.auth.uid
+        && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid));
+      allow update: if signed() && resource.data.pharmacyId == request.auth.uid
+        && request.resource.data.pharmacyId == resource.data.pharmacyId;
+      allow delete: if signed() && resource.data.pharmacyId == request.auth.uid;
+    }
+    match /orders/{id} {
+      allow create: if signed() && request.resource.data.patientId == request.auth.uid && request.resource.data.status == 'new';
+      allow read: if signed() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid);
+      allow update: if signed() && (
+        (resource.data.pharmacyId == request.auth.uid && onlyKeys(['status', 'updatedAt'])) ||
+        (resource.data.patientId == request.auth.uid && resource.data.status == 'new'
+          && request.resource.data.status == 'cancelled' && onlyKeys(['status', 'updatedAt'])));
+    }
+  }
+}
