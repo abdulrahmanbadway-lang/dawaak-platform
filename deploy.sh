@@ -7,4 +7,4 @@ npm run build
 firebase deploy --only firestore:rules,hosting
 git add -A && git commit -m "${1:-update}" || true
 git push || true
-echo "✓ https://$(node -p "require('./.firebaserc').projects.default").web.app"
+echo "✓ https://$(grep -o '"default": *"[^"]*"' .firebaserc | cut -d'"' -f4).web.app"

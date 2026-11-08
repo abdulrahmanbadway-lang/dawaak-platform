@@ -7,6 +7,8 @@ import { GOV } from '../lib/gov.js';
 import { km, fmtKm, getPos } from '../lib/geo.js';
 import { norm } from '../lib/text.js';
 import { toast, Badge, Field } from '../ui.jsx';
+import { loadHome } from '../lib/featured.js';
+import { ProdCard } from '../components.jsx';
 
 async function findProducts(text) {
   const t = norm(text), end = t + '\uf8ff', out = new Map();
@@ -24,6 +26,8 @@ export default function Search({ q }) {
   const [loc, setLoc] = useState(null), [gov, setGov] = useState(''), [busy, setBusy] = useState(false);
   const [cart, setCart] = useState({ pid: null, items: {} });
   const [co, setCo] = useState(null);
+  const [feat, setFeat] = useState(null);
+  useEffect(() => { if (!q.get('q')) loadHome().then((h) => setFeat(h.products)).catch(() => {}); }, []);
 
   const run = async (e) => {
     e?.preventDefault();
@@ -107,6 +111,7 @@ export default function Search({ q }) {
         <button className="btn o sm" id="geo" onClick={myLoc}>📍 {loc ? 'تم تحديد موقعك' : 'استخدم موقعي'}</button>
         <select className="fi sel" value={gov} onChange={(e) => setGov(e.target.value)}><option value="">كل المحافظات</option>{GOV.map((g) => <option key={g}>{g}</option>)}</select>
       </div>
+      {!rows && feat && feat.length > 0 && <><h2 className="mt">منتجات متاحة الآن</h2><div className="pgrid">{feat.map((p) => <ProdCard key={p.name} p={p} />)}</div></>}
       {groups && !groups.length && <div className="card center"><h3>مفيش نتايج</h3><p className="mu">جرّب اسم تاني أو المادة الفعالة، أو غيّر المحافظة.</p></div>}
       {groups?.map(({ ph, items, d, stock }) => (
         <div className="card ph" key={ph.id}>

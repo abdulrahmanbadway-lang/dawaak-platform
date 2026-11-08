@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './auth.jsx';
 import { useRoute, go } from './router.js';
 import { configured } from './firebase.js';
@@ -7,29 +8,41 @@ import Search from './pages/Search.jsx';
 import PatientOrders from './pages/PatientOrders.jsx';
 import PharmacyDash from './pages/PharmacyDash.jsx';
 
+function useTheme() {
+  const [t, setT] = useState(() => { try { return localStorage.getItem('dw_t') || 'light'; } catch { return 'light'; } });
+  useEffect(() => { document.documentElement.dataset.theme = t; try { localStorage.setItem('dw_t', t); } catch { /* ignore */ } }, [t]);
+  return [t, () => setT(t === 'dark' ? 'light' : 'dark')];
+}
 function Header() {
   const { profile, logout } = useAuth();
+  const [theme, toggle] = useTheme();
   const r = profile?.role;
   return (
-    <header className="hd"><div className="w hdi">
-      <a href="#/" className="brand"><img src="/assets/mark.png" alt="" /><img className="wd" src="/assets/word.png" alt="دواك" /></a>
-      <nav>
-        <a href="#/search">ابحث عن دوا</a>
-        {r === 'patient' && <a href="#/orders">طلباتي</a>}
-        {r === 'pharmacy' && <a href="#/pharmacy">لوحة الصيدلية</a>}
-      </nav>
-      <div className="ua">
-        {profile ? <><span className="av">{profile.name[0]}</span><span className="un">{profile.name}</span><button className="btn o sm" onClick={() => { logout(); go('/'); }}>خروج</button></>
-          : <><a className="btn o sm" href="#/login">دخول</a><a className="btn sm" href="#/register">حساب جديد</a></>}
-      </div>
-    </div></header>
+    <>
+      <div className="top" dir="ltr">Graduation Project 2027 · Al-Gazeera Academy · Class of 2027 Graduates</div>
+      <header className="hd"><div className="w hdi">
+        <a href="#/" className="brand"><img src="/assets/mark.png" alt="" /><img className="wd" src="/assets/word.png" alt="دواك" /></a>
+        <nav>
+          <a href="#/">الرئيسية</a>
+          <a href="#/search">ابحث عن دوا</a>
+          {r === 'patient' && <a href="#/orders">طلباتي</a>}
+          {r === 'pharmacy' && <a href="#/pharmacy">لوحة الصيدلية</a>}
+        </nav>
+        <div className="ua">
+          <button className="ic" onClick={toggle} aria-label="الوضع الليلي">{theme === 'dark' ? '☀' : '☾'}</button>
+          {profile ? <><span className="av">{profile.name[0]}</span><span className="un">{profile.name}</span><button className="btn o sm" onClick={() => { logout(); go('/'); }}>خروج</button></>
+            : <><a className="btn o sm" href="#/login">دخول</a><a className="btn sm" href="#/register">حساب جديد</a></>}
+        </div>
+      </div></header>
+    </>
   );
 }
 const Footer = () => (
-  <footer><div className="w">
-    <span>المحتوى إرشادي ولا يغني عن استشارة الطبيب. في الطوارئ اتصل بالإسعاف 123.</span>
-    <span dir="ltr">Dawaak · Graduation Project 2027 · Al-Gazeera Academy · Class of 2027 Graduates</span>
-  </div></footer>
+  <footer><div className="w fin">
+    <div className="fbrand"><img src="/assets/full.png" alt="دواك" /><div><b>دواك · Dawaak</b><p className="mu sm2">منصة تربط صيدليات مصر: ابحث عن دواك، اعرف أقرب صيدلية، واطلبه.</p></div></div>
+    <div className="fcol"><a href="#/search">ابحث عن دوا</a><a href="#/register?role=pharmacy">سجّل صيدليتك</a><a href="#/login">دخول</a></div>
+    <div className="fcol sm2" dir="ltr"><span>Graduation Project 2027</span><span>Al-Gazeera Academy</span><span>Class of 2027 Graduates</span></div>
+  </div><div className="w fnote">المحتوى إرشادي ولا يغني عن استشارة الطبيب. في الطوارئ اتصل بالإسعاف 123.</div></footer>
 );
 function Need({ role }) {
   return <div className="card center"><h2>محتاج تسجّل دخول</h2><p className="mu">الصفحة دي مخصصة {role === 'pharmacy' ? 'للصيدليات' : 'للمرضى'}.</p>
