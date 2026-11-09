@@ -4,3 +4,11 @@ dist
 .env.local
 .vercel
 .firebase/
+
+.env.*
+!.env.example
+*.log
+*serviceAccount*.json
+backups/
+.rx-tmp/
+.rx-applied

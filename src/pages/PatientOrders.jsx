@@ -26,7 +26,7 @@ export default function PatientOrders() {
       {rows && !rows.length && <div className="card center"><p className="mu">لسه معملتش أي طلب.</p><a className="btn" href="#/search">ابحث عن دوا</a></div>}
       {rows?.map((o) => (
         <div className="card" key={o.id}>
-          <div className="row between wrap"><div><h3>{o.pharmacyName}</h3><p className="mu sm2">{ms(o.createdAt) ? new Date(ms(o.createdAt)).toLocaleString('ar-EG') : ''}</p></div><b className="dist">{o.total} ج.م</b></div>
+          <div className="row between wrap"><div><h3>{o.pharmacyName} {o.source === 'rx' && <span className="bd am">من روشتة</span>}</h3><p className="mu sm2">{ms(o.createdAt) ? new Date(ms(o.createdAt)).toLocaleString('ar-EG') : ''}</p></div><b className="dist">{o.total} ج.م</b></div>
           <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
           <Steps status={o.status} />
           <div className="row between wrap"><span className="mu sm2">{LABEL[o.status]} · الدفع عند الاستلام</span>

@@ -3,21 +3,28 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signed() { return request.auth != null; }
     function onlyKeys(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function isPatient() { return signed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient'; }
 
     match /users/{uid} {
       allow read: if signed() && request.auth.uid == uid;
-      allow create: if signed() && request.auth.uid == uid && request.resource.data.role in ['patient', 'pharmacy'];
+      allow create: if signed() && request.auth.uid == uid && request.resource.data.role in ['patient', 'pharmacy']
+        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'createdAt']);
       allow update: if signed() && request.auth.uid == uid && request.resource.data.role == resource.data.role;
     }
+
     match /pharmacies/{pid} {
       allow read: if true;
       allow create: if signed() && request.auth.uid == pid
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'pharmacy'
         && request.resource.data.verified == false;
+      // الصيدلية متقدرش تغيّر التوثيق ولا الحالة ولا رقم الترخيص ولا اسم المسؤول
       allow update: if signed() && request.auth.uid == pid
         && request.resource.data.verified == resource.data.verified
-        && request.resource.data.status == resource.data.status;
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.license == resource.data.license
+        && request.resource.data.ownerName == resource.data.ownerName;
     }
+
     match /products/{id} {
       allow read: if true;
       allow create: if signed() && request.resource.data.pharmacyId == request.auth.uid
@@ -26,13 +33,104 @@ service cloud.firestore {
         && request.resource.data.pharmacyId == resource.data.pharmacyId;
       allow delete: if signed() && resource.data.pharmacyId == request.auth.uid;
     }
-    match /orders/{id} {
-      allow create: if signed() && request.resource.data.patientId == request.auth.uid && request.resource.data.status == 'new';
+
+    // ───────── الروشتات ─────────
+    // الحالات: pending -> (quoted | need_info | unavailable) -> ordered | cancelled
+    match /prescriptions/{id} {
+      function ph() { return get(/databases/$(database)/documents/pharmacies/$(request.resource.data.pharmacyId)).data; }
+      function imgOk(s) { return s is string && s.size() <= 300000 && s.matches('data:image/jpeg;base64,.*'); }
+      function imgsOk() {
+        let im = request.resource.data.images;
+        return im is list && im.size() >= 1 && im.size() <= 3
+          && imgOk(im[0])
+          && (im.size() < 2 || imgOk(im[1]))
+          && (im.size() < 3 || imgOk(im[2]));
+      }
+      function quoteOk() {
+        let qt = request.resource.data.quote;
+        return qt.keys().hasOnly(['items', 'total', 'note'])
+          && qt.items is list && qt.items.size() > 0 && qt.items.size() <= 30
+          && qt.total is number && qt.total > 0 && qt.total < 100000
+          && (!('note' in qt) || (qt.note is string && qt.note.size() <= 500));
+      }
+
       allow read: if signed() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid);
+
+      allow create: if isPatient()
+        && request.resource.data.keys().hasOnly(['patientId', 'patientName', 'pharmacyId', 'pharmacyName', 'phone', 'address', 'note', 'images', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['patientId', 'patientName', 'pharmacyId', 'pharmacyName', 'phone', 'address', 'note', 'images', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.patientName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && ph().status == 'active'
+        && request.resource.data.pharmacyName == ph().name
+        && request.resource.data.phone is string && request.resource.data.phone.size() >= 8 && request.resource.data.phone.size() <= 20
+        && request.resource.data.address is string && request.resource.data.address.size() >= 5 && request.resource.data.address.size() <= 300
+        && request.resource.data.note is string && request.resource.data.note.size() <= 500
+        && imgsOk();
+
       allow update: if signed() && (
-        (resource.data.pharmacyId == request.auth.uid && onlyKeys(['status', 'updatedAt'])) ||
-        (resource.data.patientId == request.auth.uid && resource.data.status == 'new'
-          && request.resource.data.status == 'cancelled' && onlyKeys(['status', 'updatedAt'])));
+        // الصيدلي: يرد بعرض سعر أو يطلب توضيح أو يعتذر
+        (resource.data.pharmacyId == request.auth.uid
+          && resource.data.status in ['pending', 'need_info', 'quoted']
+          && request.resource.data.status in ['quoted', 'need_info', 'unavailable']
+          && onlyKeys(['status', 'quote', 'updatedAt'])
+          && (request.resource.data.status != 'quoted' || quoteOk()))
+        || (resource.data.patientId == request.auth.uid && (
+          // المريض: يرد على طلب التوضيح
+          (resource.data.status == 'need_info' && request.resource.data.status == 'pending' && onlyKeys(['status', 'updatedAt']))
+          // أو يلغي
+          || (resource.data.status in ['pending', 'need_info', 'quoted'] && request.resource.data.status == 'cancelled' && onlyKeys(['status', 'updatedAt']))
+          // أو يؤكد العرض: لازم يتكتب معاها طلب (في نفس الـ batch) مرتبط بيها ومطابق للعرض
+          || (resource.data.status == 'quoted' && request.resource.data.status == 'ordered' && onlyKeys(['status', 'orderId', 'updatedAt'])
+            && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.prescriptionId == id
+            && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.patientId == request.auth.uid)
+        ))
+      );
+      // مفيش حذف: الروشتات بتتلغي بس
+    }
+
+    match /prescriptions/{rid}/messages/{mid} {
+      function rx() { return get(/databases/$(database)/documents/prescriptions/$(rid)).data; }
+      allow read: if signed() && (rx().patientId == request.auth.uid || rx().pharmacyId == request.auth.uid);
+      allow create: if signed()
+        && (rx().patientId == request.auth.uid || rx().pharmacyId == request.auth.uid)
+        && rx().status in ['pending', 'need_info', 'quoted']
+        && request.resource.data.keys().hasOnly(['senderId', 'role', 'text', 'createdAt'])
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.role == (rx().patientId == request.auth.uid ? 'patient' : 'pharmacy')
+        && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // ───────── الطلبات ─────────
+    match /orders/{id} {
+      function rxOf(rid) { return get(/databases/$(database)/documents/prescriptions/$(rid)).data; }
+      // طلب جاي من روشتة لازم يطابق عرض الصيدلي بالظبط (الأصناف والإجمالي) وتكون الروشتة لسه "quoted"
+      function rxLinked() {
+        let d = request.resource.data;
+        let r = rxOf(d.prescriptionId);
+        return d.source == 'rx' && r.patientId == request.auth.uid && r.pharmacyId == d.pharmacyId
+          && r.status == 'quoted' && d.total == r.quote.total && d.items == r.quote.items;
+      }
+
+      allow create: if isPatient()
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.status == 'new'
+        && request.resource.data.items is list && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 30
+        && (!('prescriptionId' in request.resource.data) || rxLinked());
+
+      allow read: if signed() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid);
+
+      // انتقالات الحالة المسموحة بس
+      allow update: if signed() && onlyKeys(['status', 'updatedAt']) && (
+        (resource.data.pharmacyId == request.auth.uid && (
+          (resource.data.status == 'new' && request.resource.data.status in ['preparing', 'cancelled'])
+          || (resource.data.status == 'preparing' && request.resource.data.status == 'out')
+          || (resource.data.status == 'out' && request.resource.data.status == 'done')))
+        || (resource.data.patientId == request.auth.uid && resource.data.status == 'new' && request.resource.data.status == 'cancelled'));
     }
   }
 }

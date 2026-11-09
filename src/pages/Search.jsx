@@ -103,6 +103,7 @@ export default function Search({ q }) {
   return (
     <div>
       <h1>ابحث عن دوا</h1>
+      <a className="card rxban" href="#/rx/new"><span className="hn">📄</span><div><b>عندك روشتة؟</b><p className="mu sm2">ارفع صورتها لأي صيدلية والصيدلي هيراجعها ويرد عليك بالأصناف والأسعار.</p></div><span className="go">ارفع روشتة ◂</span></a>
       <form className="sb" onSubmit={run}>
         <input name="q" value={text} onChange={(e) => setText(e.target.value)} placeholder="اسم الدوا أو المادة الفعالة…" />
         <button className="btn" disabled={busy}>{busy ? '…' : 'ابحث'}</button>
@@ -131,7 +132,7 @@ export default function Search({ q }) {
                   {p.description && <p><b>الاستخدام:</b> {p.description}</p>}{p.warnings && <p><b>تحذيرات:</b> {p.warnings}</p>}</details>}
               </div>
               <div className="pr"><b>{p.price} ج.م</b>
-                {p.stock > 0 ? (p.rx ? <small className="mu">الطلب بروشتة قريباً</small> :
+                {p.stock > 0 ? (p.rx ? <a className="go" href={'#/rx/new?ph=' + p.pharmacyId}>ارفع روشتة ◂</a> :
                   cart.items[p.id] ? <div className="qty"><button onClick={() => rem(p.id)}>−</button><span>{cart.items[p.id].qty}</span><button onClick={() => add(p)}>＋</button></div>
                     : <button className="btn sm" onClick={() => add(p)}>أضف للطلب</button>)
                   : <Badge c="rd">نفد</Badge>}</div>

@@ -7,6 +7,7 @@ import AuthPage from './pages/AuthPage.jsx';
 import Search from './pages/Search.jsx';
 import PatientOrders from './pages/PatientOrders.jsx';
 import PharmacyDash from './pages/PharmacyDash.jsx';
+import PatientRx from './pages/PatientRx.jsx';
 
 function useTheme() {
   const [t, setT] = useState(() => { try { return localStorage.getItem('dw_t') || 'light'; } catch { return 'light'; } });
@@ -25,6 +26,8 @@ function Header() {
         <nav>
           <a href="#/">الرئيسية</a>
           <a href="#/search">ابحث عن دوا</a>
+          {r !== 'pharmacy' && <a href="#/rx/new">ارفع روشتة</a>}
+          {r === 'patient' && <a href="#/rx">روشتاتي</a>}
           {r === 'patient' && <a href="#/orders">طلباتي</a>}
           {r === 'pharmacy' && <a href="#/pharmacy">لوحة الصيدلية</a>}
         </nav>
@@ -63,6 +66,7 @@ function Routes() {
   if (loading) page = <div className="center">جاري التحميل…</div>;
   else if (path === '/login' || path === '/register') page = <AuthPage mode={path.slice(1)} q={q} />;
   else if (path === '/search') page = <Search key={q.toString()} q={q} />;
+  else if (path === '/rx' || path === '/rx/new') page = role === 'patient' ? <PatientRx path={path} q={q} /> : <Need role="patient" />;
   else if (path === '/orders') page = role === 'patient' ? <PatientOrders /> : <Need role="patient" />;
   else if (path.startsWith('/pharmacy')) page = role === 'pharmacy' ? <PharmacyDash /> : <Need role="pharmacy" />;
   else page = <Home />;
