@@ -8,6 +8,8 @@ import Search from './pages/Search.jsx';
 import PatientOrders from './pages/PatientOrders.jsx';
 import PharmacyDash from './pages/PharmacyDash.jsx';
 import PatientRx from './pages/PatientRx.jsx';
+import Track from './pages/Track.jsx';
+import Courier from './pages/Courier.jsx';
 
 function useTheme() {
   const [t, setT] = useState(() => { try { return localStorage.getItem('dw_t') || 'light'; } catch { return 'light'; } });
@@ -26,10 +28,11 @@ function Header() {
         <nav>
           <a href="#/">الرئيسية</a>
           <a href="#/search">ابحث عن دوا</a>
-          {r !== 'pharmacy' && <a href="#/rx/new">ارفع روشتة</a>}
+          {(!r || r === 'patient') && <a href="#/rx/new">ارفع روشتة</a>}
           {r === 'patient' && <a href="#/rx">روشتاتي</a>}
           {r === 'patient' && <a href="#/orders">طلباتي</a>}
           {r === 'pharmacy' && <a href="#/pharmacy">لوحة الصيدلية</a>}
+          {r === 'courier' && <a href="#/courier">توصيلاتي</a>}
         </nav>
         <div className="ua">
           <button className="ic" onClick={toggle} aria-label="الوضع الليلي">{theme === 'dark' ? '☀' : '☾'}</button>
@@ -48,8 +51,8 @@ const Footer = () => (
   </div><div className="w fnote">المحتوى إرشادي ولا يغني عن استشارة الطبيب. في الطوارئ اتصل بالإسعاف 123.</div></footer>
 );
 function Need({ role }) {
-  return <div className="card center"><h2>محتاج تسجّل دخول</h2><p className="mu">الصفحة دي مخصصة {role === 'pharmacy' ? 'للصيدليات' : 'للمرضى'}.</p>
-    <div className="row g"><a className="btn" href="#/login">دخول</a><a className="btn o" href={'#/register?role=' + role}>حساب جديد</a></div></div>;
+  return <div className="card center"><h2>محتاج تسجّل دخول</h2><p className="mu">الصفحة دي مخصصة {{ pharmacy: 'للصيدليات', courier: 'للمناديب (الصيدلية هي اللي بتعمل حسابك)' }[role] || 'للمرضى'}.</p>
+    <div className="row g"><a className="btn" href="#/login">دخول</a>{role !== 'courier' && <a className="btn o" href={'#/register?role=' + role}>حساب جديد</a>}</div></div>;
 }
 function Setup() {
   return <div className="w"><div className="card"><h2>⚙ إعداد Firebase مطلوب</h2>
@@ -68,6 +71,8 @@ function Routes() {
   else if (path === '/search') page = <Search key={q.toString()} q={q} />;
   else if (path === '/rx' || path === '/rx/new') page = role === 'patient' ? <PatientRx path={path} q={q} /> : <Need role="patient" />;
   else if (path === '/orders') page = role === 'patient' ? <PatientOrders /> : <Need role="patient" />;
+  else if (path.startsWith('/track/')) page = role === 'patient' || role === 'pharmacy' ? <Track id={path.split('/')[2]} role={role} /> : <Need role="patient" />;
+  else if (path === '/courier') page = role === 'courier' ? <Courier /> : <Need role="courier" />;
   else if (path.startsWith('/pharmacy')) page = role === 'pharmacy' ? <PharmacyDash /> : <Need role="pharmacy" />;
   else page = <Home />;
   return <><Header /><main className="w">{page}</main><Footer /></>;

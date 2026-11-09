@@ -3,11 +3,12 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signed() { return request.auth != null; }
     function onlyKeys(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function destOk(d) { return d is map && d.keys().hasOnly(['lat', 'lng']) && d.lat is number && d.lng is number && d.lat >= -90 && d.lat <= 90 && d.lng >= -180 && d.lng <= 180; }
     function isPatient() { return signed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient'; }
 
     match /users/{uid} {
       allow read: if signed() && request.auth.uid == uid;
-      allow create: if signed() && request.auth.uid == uid && request.resource.data.role in ['patient', 'pharmacy']
+      allow create: if signed() && request.auth.uid == uid && request.resource.data.role in ['patient', 'pharmacy', 'courier']
         && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'createdAt']);
       allow update: if signed() && request.auth.uid == uid && request.resource.data.role == resource.data.role;
     }
@@ -57,7 +58,7 @@ service cloud.firestore {
       allow read: if signed() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid);
 
       allow create: if isPatient()
-        && request.resource.data.keys().hasOnly(['patientId', 'patientName', 'pharmacyId', 'pharmacyName', 'phone', 'address', 'note', 'images', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['patientId', 'patientName', 'pharmacyId', 'pharmacyName', 'phone', 'address', 'note', 'images', 'status', 'createdAt', 'updatedAt', 'dest'])
         && request.resource.data.keys().hasAll(['patientId', 'patientName', 'pharmacyId', 'pharmacyName', 'phone', 'address', 'note', 'images', 'status', 'createdAt', 'updatedAt'])
         && request.resource.data.patientId == request.auth.uid
         && request.resource.data.patientName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
@@ -68,7 +69,8 @@ service cloud.firestore {
         && request.resource.data.phone is string && request.resource.data.phone.size() >= 8 && request.resource.data.phone.size() <= 20
         && request.resource.data.address is string && request.resource.data.address.size() >= 5 && request.resource.data.address.size() <= 300
         && request.resource.data.note is string && request.resource.data.note.size() <= 500
-        && imgsOk();
+        && imgsOk()
+        && (!('dest' in request.resource.data) || destOk(request.resource.data.dest));
 
       allow update: if signed() && (
         // الصيدلي: يرد بعرض سعر أو يطلب توضيح أو يعتذر
@@ -105,6 +107,39 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ───────── المناديب والتتبع ─────────
+    // المندوب حساب (role=courier) والصيدلية هي اللي بتربطه بيها. من غير مستند هنا المندوب مش بيشوف ولا يوصّل أي طلب.
+    match /couriers/{cid} {
+      allow read: if signed() && (resource.data.pharmacyId == request.auth.uid || cid == request.auth.uid);
+      allow create: if signed() && request.resource.data.pharmacyId == request.auth.uid
+        && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(cid)).data.role == 'courier'
+        && request.resource.data.keys().hasOnly(['pharmacyId', 'name', 'phone', 'active', 'createdAt'])
+        && request.resource.data.keys().hasAll(['pharmacyId', 'name', 'phone', 'active', 'createdAt'])
+        && request.resource.data.active == true
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 60
+        && request.resource.data.phone is string && request.resource.data.phone.size() >= 8 && request.resource.data.phone.size() <= 20;
+      allow update: if signed() && resource.data.pharmacyId == request.auth.uid && onlyKeys(['active']);
+    }
+
+    // موقع المندوب اللحظي: بيكتبه المندوب المعيّن على الطلب وهو "out" بس، ويقراه المريض والصيدلية والمندوب
+    match /tracking/{oid} {
+      function ord() { return get(/databases/$(database)/documents/orders/$(oid)).data; }
+      allow read: if signed() && (ord().patientId == request.auth.uid || ord().pharmacyId == request.auth.uid || ord().get('courierId', null) == request.auth.uid);
+      allow create, update: if signed() && ord().get('courierId', null) == request.auth.uid && ord().status == 'out'
+        && request.resource.data.keys().hasOnly(['courierId', 'lat', 'lng', 'acc', 'speed', 'heading', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['courierId', 'lat', 'lng', 'updatedAt'])
+        && request.resource.data.courierId == request.auth.uid
+        && request.resource.data.lat is number && request.resource.data.lat >= -90 && request.resource.data.lat <= 90
+        && request.resource.data.lng is number && request.resource.data.lng >= -180 && request.resource.data.lng <= 180
+        && (!('acc' in request.resource.data) || request.resource.data.acc is number)
+        && (!('speed' in request.resource.data) || request.resource.data.speed is number)
+        && (!('heading' in request.resource.data) || request.resource.data.heading is number)
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
     // ───────── الطلبات ─────────
     match /orders/{id} {
       function rxOf(rid) { return get(/databases/$(database)/documents/prescriptions/$(rid)).data; }
@@ -115,22 +150,40 @@ service cloud.firestore {
         return d.source == 'rx' && r.patientId == request.auth.uid && r.pharmacyId == d.pharmacyId
           && r.status == 'quoted' && d.total == r.quote.total && d.items == r.quote.items;
       }
+      // الصيدلية بتعيّن مندوبها هي (شغّال ومربوط بيها)، والاسم والموبايل لازم يطابقوا ملفه
+      function courierOk() {
+        let c = get(/databases/$(database)/documents/couriers/$(request.resource.data.courierId)).data;
+        return c.pharmacyId == request.auth.uid && c.active == true
+          && request.resource.data.courierName == c.name && request.resource.data.courierPhone == c.phone;
+      }
 
       allow create: if isPatient()
+        && request.resource.data.keys().hasOnly(['patientId', 'patientName', 'phone', 'address', 'note', 'pharmacyId', 'pharmacyName', 'items', 'total', 'status', 'createdAt', 'updatedAt', 'dest', 'source', 'prescriptionId'])
         && request.resource.data.patientId == request.auth.uid
         && request.resource.data.status == 'new'
         && request.resource.data.items is list && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 30
+        && (!('dest' in request.resource.data) || destOk(request.resource.data.dest))
         && (!('prescriptionId' in request.resource.data) || rxLinked());
 
-      allow read: if signed() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid);
+      // (ترتيب الشروط مهم: المندوب آخر واحد عشان مستندات الطلبات القديمة اللي من غير courierId ما تعملش خطأ)
+      allow read: if signed() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid || resource.data.courierId == request.auth.uid);
 
       // انتقالات الحالة المسموحة بس
-      allow update: if signed() && onlyKeys(['status', 'updatedAt']) && (
+      allow update: if signed() && (
         (resource.data.pharmacyId == request.auth.uid && (
-          (resource.data.status == 'new' && request.resource.data.status in ['preparing', 'cancelled'])
-          || (resource.data.status == 'preparing' && request.resource.data.status == 'out')
-          || (resource.data.status == 'out' && request.resource.data.status == 'done')))
-        || (resource.data.patientId == request.auth.uid && resource.data.status == 'new' && request.resource.data.status == 'cancelled'));
+          (onlyKeys(['status', 'updatedAt']) && (
+            (resource.data.status == 'new' && request.resource.data.status in ['preparing', 'cancelled'])
+            || (resource.data.status == 'preparing' && request.resource.data.status == 'out')
+            || (resource.data.status == 'out' && request.resource.data.status == 'done')))
+          // الخروج للتوصيل مع مندوب
+          || (onlyKeys(['status', 'updatedAt', 'courierId', 'courierName', 'courierPhone'])
+            && resource.data.status == 'preparing' && request.resource.data.status == 'out' && courierOk())))
+        // المندوب المعيّن: يسلّم بس
+        || (resource.data.get('courierId', null) == request.auth.uid && onlyKeys(['status', 'updatedAt'])
+          && resource.data.status == 'out' && request.resource.data.status == 'done')
+        // المريض: يلغي قبل القبول
+        || (resource.data.patientId == request.auth.uid && onlyKeys(['status', 'updatedAt'])
+          && resource.data.status == 'new' && request.resource.data.status == 'cancelled'));
     }
   }
 }

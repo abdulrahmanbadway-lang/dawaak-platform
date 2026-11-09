@@ -8,19 +8,20 @@ import { LABEL, ms } from '../lib/status.js';
 import { Field, Badge, toast } from '../ui.jsx';
 import Products from './Products.jsx';
 import PharmacyRx from './PharmacyRx.jsx';
+import Couriers, { useCouriers } from './Couriers.jsx';
 import { useRx } from '../lib/rx.js';
 import { Steps } from './PatientOrders.jsx';
 
 const NEXT = { new: [['preparing', 'قبول وتجهيز', ''], ['cancelled', 'رفض', 'o']], preparing: [['out', 'خرج للتوصيل', '']], out: [['done', 'تم التسليم', 'g']] };
 
-function Orders({ uid }) {
-  const [rows, setRows] = useState(null);
+function Orders({ uid, couriers }) {
+  const [rows, setRows] = useState(null), [pick, setPick] = useState(null);
   useEffect(() => onSnapshot(query(collection(db, 'orders'), where('pharmacyId', '==', uid)),
     (s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.createdAt) - ms(a.createdAt))),
     (e) => toast('تعذر تحميل الطلبات: ' + e.message)), [uid]);
   const [busy, setBusy] = useState(null);
   // تغيير حالة الطلب (وخصم المخزون عند القبول) في معاملة واحدة: يا كله يتنفذ يا ولا حاجة
-  const move = async (o, st) => {
+  const move = async (o, st, courier = null) => {
     if (busy) return;
     setBusy(o.id);
     try {
@@ -32,7 +33,7 @@ function Orders({ uid }) {
           const snaps = await Promise.all(refs.map((x) => tx.get(x.r)));
           snaps.forEach((s, k) => { if (s.exists()) tx.update(refs[k].r, { stock: Math.max(0, (s.data().stock || 0) - refs[k].qty), updatedAt: serverTimestamp() }); });
         }
-        tx.update(oref, { status: st, updatedAt: serverTimestamp() });
+        tx.update(oref, { status: st, updatedAt: serverTimestamp(), ...(st === 'out' && courier ? { courierId: courier.id, courierName: courier.name, courierPhone: courier.phone } : {}) });
       });
     } catch (e) { toast('تعذر التحديث: ' + e.message); }
     setBusy(null);
@@ -43,12 +44,19 @@ function Orders({ uid }) {
       {rows?.map((o) => (
         <div className="card" key={o.id}>
           <div className="row between wrap"><div><h3>{o.patientName} <Badge c={o.status === 'new' ? 'am' : o.status === 'cancelled' ? 'rd' : 'ok'}>{LABEL[o.status]}</Badge> {o.source === 'rx' && <Badge c="am">من روشتة</Badge>}</h3>
+            {o.courierName && <p className="sm2">🛵 {o.courierName}{o.status === 'out' && <> · <a className="go" href={'#/track/' + o.id}>تتبع على الخريطة ◂</a></>}</p>}
             <p className="mu sm2" dir="ltr" style={{ textAlign: 'right' }}>{o.phone}</p><p className="mu sm2">{o.address}</p>{o.note && <p className="sm2">ملاحظة: {o.note}</p>}</div><b className="dist">{o.total} ج.م</b></div>
           <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
           <Steps status={o.status} />
-          <div className="row g wrap">{(NEXT[o.status] || []).map(([st, l, c]) => <button key={st} className={'btn sm ' + c} disabled={busy === o.id} onClick={() => move(o, st)}>{l}</button>)}</div>
+          <div className="row g wrap">{(NEXT[o.status] || []).map(([st, l, c]) => <button key={st} className={'btn sm ' + c} disabled={busy === o.id} onClick={() => (st === 'out' && couriers.length ? setPick(o) : move(o, st))}>{l}</button>)}</div>
         </div>
       ))}
+      {pick && <div className="mo" onClick={(e) => e.target === e.currentTarget && setPick(null)}><div className="card narrow">
+        <h2>مين هيوصّل الطلب؟</h2><p className="mu sm2">اختار مندوب عشان العميل يتابعه على الخريطة.</p>
+        {couriers.map((c) => <button key={c.id} className="btn o full" onClick={() => { move(pick, 'out', c); setPick(null); }}>🛵 {c.name} · {c.phone}</button>)}
+        <button className="btn full" onClick={() => { move(pick, 'out', null); setPick(null); }}>بدون مندوب (توصيل من غير تتبع)</button>
+        <button className="btn o full" onClick={() => setPick(null)}>إلغاء</button>
+      </div></div>}
     </div>
   );
 }
@@ -87,12 +95,14 @@ export default function PharmacyDash() {
   const { user, profile } = useAuth();
   const [tab, setTab] = useState('orders');
   const { rows: rxRows, err: rxErr } = useRx('pharmacyId', user.uid);
+  const couriers = useCouriers(user.uid);
   const rxNew = (rxRows || []).filter((r) => r.status === 'pending').length;
   return (
     <div>
       <h1>لوحة الصيدلية <span className="mu sm2">· {profile.name}</span></h1>
-      <div className="tabs">{[['orders', 'الطلبات'], ['rx', 'الروشتات' + (rxNew ? ' (' + rxNew + ')' : '')], ['products', 'المنتجات'], ['profile', 'بيانات الصيدلية']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
-      {tab === 'orders' && <Orders uid={user.uid} />}
+      <div className="tabs">{[['orders', 'الطلبات'], ['rx', 'الروشتات' + (rxNew ? ' (' + rxNew + ')' : '')], ['couriers', 'المناديب'], ['products', 'المنتجات'], ['profile', 'بيانات الصيدلية']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
+      {tab === 'orders' && <Orders uid={user.uid} couriers={(couriers || []).filter((c) => c.active)} />}
+      {tab === 'couriers' && <Couriers uid={user.uid} rows={couriers} />}
       {tab === 'rx' && <PharmacyRx uid={user.uid} rows={rxRows} err={rxErr} />}
       {tab === 'products' && <Products uid={user.uid} />}
       {tab === 'profile' && <Profile uid={user.uid} />}

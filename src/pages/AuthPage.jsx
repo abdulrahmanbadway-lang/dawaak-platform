@@ -10,7 +10,7 @@ export default function AuthPage({ mode, q }) {
   const [f, setF] = useState({ name: '', email: '', password: '', pname: '', license: '', phone: '', governorate: '', address: '' });
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
-  useEffect(() => { if (profile) go(profile.role === 'pharmacy' ? '/pharmacy' : '/search'); }, [profile]);
+  useEffect(() => { if (profile) go({ pharmacy: '/pharmacy', courier: '/courier' }[profile.role] || '/search'); }, [profile]);
 
   const submit = async (e) => {
     e.preventDefault(); setErr('');

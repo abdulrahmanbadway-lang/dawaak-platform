@@ -28,8 +28,10 @@ export default function PatientOrders() {
         <div className="card" key={o.id}>
           <div className="row between wrap"><div><h3>{o.pharmacyName} {o.source === 'rx' && <span className="bd am">من روشتة</span>}</h3><p className="mu sm2">{ms(o.createdAt) ? new Date(ms(o.createdAt)).toLocaleString('ar-EG') : ''}</p></div><b className="dist">{o.total} ج.م</b></div>
           <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
+          {o.courierName && o.status === 'out' && <p className="sm2">🛵 المندوب: {o.courierName}</p>}
           <Steps status={o.status} />
           <div className="row between wrap"><span className="mu sm2">{LABEL[o.status]} · الدفع عند الاستلام</span>
+            {o.status === 'out' && <a className="btn g sm" href={'#/track/' + o.id}>🛵 تتبع الطلب</a>}
             {o.status === 'new' && <button className="btn o sm" onClick={() => cancel(o.id)}>إلغاء الطلب</button>}</div>
         </div>
       ))}

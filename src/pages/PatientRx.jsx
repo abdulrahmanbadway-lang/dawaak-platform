@@ -14,7 +14,7 @@ import { Thumbs, QuoteView, Chat, fmtTime } from '../rxparts.jsx';
 function NewRx({ q }) {
   const { user, profile } = useAuth();
   const [phs, setPhs] = useState(null), [pid, setPid] = useState(q.get('ph') || '');
-  const [gov, setGov] = useState(''), [loc, setLoc] = useState(null);
+  const [gov, setGov] = useState(''), [loc, setLoc] = useState(null), [dest, setDest] = useState(null);
   const [imgs, setImgs] = useState([]), [prep, setPrep] = useState(false), [busy, setBusy] = useState(false);
   const [f, setF] = useState({ phone: '', address: '', note: '' });
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
@@ -47,7 +47,7 @@ function NewRx({ q }) {
     try {
       await addDoc(collection(db, 'prescriptions'), {
         patientId: user.uid, patientName: profile.name, pharmacyId: ph.id, pharmacyName: ph.name,
-        phone: f.phone.trim(), address: f.address.trim(), note: f.note.trim(), images: imgs,
+        phone: f.phone.trim(), address: f.address.trim(), note: f.note.trim(), images: imgs, ...(dest ? { dest } : {}),
         status: 'pending', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       });
       toast('تم إرسال الروشتة للصيدلي ✓'); go('/rx');
@@ -88,6 +88,7 @@ function NewRx({ q }) {
         <h3>3) بيانات التوصيل</h3>
         <Field label="رقم الموبايل" name="phone" type="tel" v={f.phone} on={set('phone')} dir="ltr" maxLength={20} />
         <Field label="عنوان التوصيل" name="address" v={f.address} on={set('address')} maxLength={300} />
+        <button type="button" className="btn o sm" onClick={async () => { try { const x = await getPos(); setDest({ lat: +x.lat.toFixed(6), lng: +x.lng.toFixed(6) }); toast('تم تحديد موقع التوصيل ✓'); } catch { toast('اسمح بالوصول للموقع'); } }}>📍 {dest ? 'تم تحديد موقع التوصيل ✓' : 'حدد موقع التوصيل (عشان تتابع المندوب)'}</button>
         <Field label="ملاحظات للصيدلي (اختياري)" name="note" type="textarea" v={f.note} on={set('note')} maxLength={500} placeholder="مثلاً: عندي حساسية من البنسلين" />
         <button className="btn g full" disabled={busy || prep}>{busy ? '…' : 'إرسال الروشتة للصيدلي'}</button>
       </div>
@@ -114,7 +115,7 @@ function List() {
       b.set(oref, {
         patientId: user.uid, patientName: r.patientName, phone: r.phone, address: r.address, note: r.note || '',
         pharmacyId: r.pharmacyId, pharmacyName: r.pharmacyName, items: r.quote.items, total: r.quote.total,
-        status: 'new', source: 'rx', prescriptionId: r.id, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+        ...(r.dest ? { dest: r.dest } : {}), status: 'new', source: 'rx', prescriptionId: r.id, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       });
       b.update(doc(db, 'prescriptions', r.id), { status: 'ordered', orderId: oref.id, updatedAt: serverTimestamp() });
       await b.commit(); toast('تم تأكيد الطلب ✓'); go('/orders');

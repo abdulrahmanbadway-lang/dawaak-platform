@@ -84,7 +84,7 @@ export default function Search({ q }) {
   const startCheckout = () => {
     if (!user) { toast('سجّل دخولك الأول عشان تكمل الطلب'); return go('/login'); }
     if (profile?.role !== 'patient') return toast('الطلب متاح لحسابات المرضى فقط');
-    setCo({ phone: '', address: '', note: '' });
+    setCo({ phone: '', address: '', note: '', dest: null });
   };
   const send = async (e) => {
     e.preventDefault();
@@ -94,6 +94,7 @@ export default function Search({ q }) {
         patientId: user.uid, patientName: profile.name, phone: co.phone.trim(), address: co.address.trim(), note: co.note.trim(),
         pharmacyId: cart.pid, pharmacyName: phs[cart.pid].name,
         items: list.map((x) => ({ productId: x.p.id, name: x.p.name, dose: x.p.dose || '', price: x.p.price, qty: x.qty })),
+        ...(co.dest ? { dest: co.dest } : {}),
         total, status: 'new', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       });
       toast('تم إرسال طلبك للصيدلية ✓'); setCart({ pid: null, items: {} }); setCo(null); go('/orders');
@@ -145,6 +146,7 @@ export default function Search({ q }) {
         <h2>إتمام الطلب</h2><p className="mu">من {phs[cart.pid].name} · الإجمالي <b>{total} ج.م</b> (الدفع عند الاستلام)</p>
         <Field label="رقم الموبايل" name="phone" type="tel" v={co.phone} on={(v) => setCo({ ...co, phone: v })} dir="ltr" />
         <Field label="عنوان التوصيل" name="address" v={co.address} on={(v) => setCo({ ...co, address: v })} />
+        <button type="button" className="btn o sm" onClick={async () => { try { const p = await getPos(); setCo((c) => ({ ...c, dest: { lat: +p.lat.toFixed(6), lng: +p.lng.toFixed(6) } })); toast('تم تحديد موقع التوصيل ✓'); } catch { toast('اسمح بالوصول للموقع'); } }}>📍 {co.dest ? 'تم تحديد موقع التوصيل ✓' : 'حدد موقع التوصيل (عشان تتابع المندوب)'}</button>
         <Field label="ملاحظات (اختياري)" name="note" type="textarea" v={co.note} on={(v) => setCo({ ...co, note: v })} />
         <div className="row g"><button className="btn g" style={{ flex: 1 }}>تأكيد الطلب</button><button type="button" className="btn o" onClick={() => setCo(null)}>إلغاء</button></div>
       </form></div>}
