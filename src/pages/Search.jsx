@@ -3,6 +3,7 @@ import { collection, query, where, limit, getDocs, getDoc, doc, addDoc, serverTi
 import { db } from '../firebase.js';
 import { useAuth } from '../auth.jsx';
 import { go } from '../router.js';
+import { Icon } from '../icons.jsx';
 import { GOV } from '../lib/gov.js';
 import { km, fmtKm, getPos } from '../lib/geo.js';
 import { norm } from '../lib/text.js';
@@ -84,7 +85,7 @@ export default function Search({ q }) {
   const startCheckout = () => {
     if (!user) { toast('سجّل دخولك الأول عشان تكمل الطلب'); return go('/login'); }
     if (profile?.role !== 'patient') return toast('الطلب متاح لحسابات المرضى فقط');
-    setCo({ phone: '', address: '', note: '' });
+    setCo({ phone: '', address: '', note: '', dest: null });
   };
   const send = async (e) => {
     e.preventDefault();
@@ -94,6 +95,7 @@ export default function Search({ q }) {
         patientId: user.uid, patientName: profile.name, phone: co.phone.trim(), address: co.address.trim(), note: co.note.trim(),
         pharmacyId: cart.pid, pharmacyName: phs[cart.pid].name,
         items: list.map((x) => ({ productId: x.p.id, name: x.p.name, dose: x.p.dose || '', price: x.p.price, qty: x.qty })),
+        ...(co.dest ? { dest: co.dest } : {}),
         total, status: 'new', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       });
       toast('تم إرسال طلبك للصيدلية ✓'); setCart({ pid: null, items: {} }); setCo(null); go('/orders');
@@ -103,12 +105,13 @@ export default function Search({ q }) {
   return (
     <div>
       <h1>ابحث عن دوا</h1>
+      <a className="card rxban" href="#/rx/new"><span className="hn"><Icon n="rx" s={24} /></span><div><b>عندك روشتة؟</b><p className="mu sm2">ارفع صورتها لأي صيدلية والصيدلي هيراجعها ويرد عليك بالأصناف والأسعار.</p></div><span className="go">ارفع روشتة ◂</span></a>
       <form className="sb" onSubmit={run}>
         <input name="q" value={text} onChange={(e) => setText(e.target.value)} placeholder="اسم الدوا أو المادة الفعالة…" />
         <button className="btn" disabled={busy}>{busy ? '…' : 'ابحث'}</button>
       </form>
       <div className="row g wrap bar2">
-        <button className="btn o sm" id="geo" onClick={myLoc}>📍 {loc ? 'تم تحديد موقعك' : 'استخدم موقعي'}</button>
+        <button className="btn o sm" id="geo" onClick={myLoc}><Icon n="pin" s={16} /> {loc ? 'تم تحديد موقعك' : 'استخدم موقعي'}</button>
         <select className="fi sel" value={gov} onChange={(e) => setGov(e.target.value)}><option value="">كل المحافظات</option>{GOV.map((g) => <option key={g}>{g}</option>)}</select>
       </div>
       {!rows && feat && feat.length > 0 && <><h2 className="mt">منتجات متاحة الآن</h2><div className="pgrid">{feat.map((p) => <ProdCard key={p.name} p={p} />)}</div></>}
@@ -131,7 +134,7 @@ export default function Search({ q }) {
                   {p.description && <p><b>الاستخدام:</b> {p.description}</p>}{p.warnings && <p><b>تحذيرات:</b> {p.warnings}</p>}</details>}
               </div>
               <div className="pr"><b>{p.price} ج.م</b>
-                {p.stock > 0 ? (p.rx ? <small className="mu">الطلب بروشتة قريباً</small> :
+                {p.stock > 0 ? (p.rx ? <a className="go" href={'#/rx/new?ph=' + p.pharmacyId}>ارفع روشتة ◂</a> :
                   cart.items[p.id] ? <div className="qty"><button onClick={() => rem(p.id)}>−</button><span>{cart.items[p.id].qty}</span><button onClick={() => add(p)}>＋</button></div>
                     : <button className="btn sm" onClick={() => add(p)}>أضف للطلب</button>)
                   : <Badge c="rd">نفد</Badge>}</div>
@@ -144,6 +147,7 @@ export default function Search({ q }) {
         <h2>إتمام الطلب</h2><p className="mu">من {phs[cart.pid].name} · الإجمالي <b>{total} ج.م</b> (الدفع عند الاستلام)</p>
         <Field label="رقم الموبايل" name="phone" type="tel" v={co.phone} on={(v) => setCo({ ...co, phone: v })} dir="ltr" />
         <Field label="عنوان التوصيل" name="address" v={co.address} on={(v) => setCo({ ...co, address: v })} />
+        <button type="button" className="btn o sm" onClick={async () => { try { const p = await getPos(); setCo((c) => ({ ...c, dest: { lat: +p.lat.toFixed(6), lng: +p.lng.toFixed(6) } })); toast('تم تحديد موقع التوصيل ✓'); } catch { toast('اسمح بالوصول للموقع'); } }}><Icon n="pin" s={16} /> {co.dest ? 'تم تحديد موقع التوصيل ✓' : 'حدد موقع التوصيل (عشان تتابع المندوب)'}</button>
         <Field label="ملاحظات (اختياري)" name="note" type="textarea" v={co.note} on={(v) => setCo({ ...co, note: v })} />
         <div className="row g"><button className="btn g" style={{ flex: 1 }}>تأكيد الطلب</button><button type="button" className="btn o" onClick={() => setCo(null)}>إلغاء</button></div>
       </form></div>}

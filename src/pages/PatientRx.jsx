@@ -3,6 +3,7 @@ import { collection, getDocs, addDoc, updateDoc, doc, writeBatch, limit, query, 
 import { db } from '../firebase.js';
 import { useAuth } from '../auth.jsx';
 import { go } from '../router.js';
+import { Icon } from '../icons.jsx';
 import { GOV } from '../lib/gov.js';
 import { km, fmtKm, getPos } from '../lib/geo.js';
 import { rxImage } from '../lib/img.js';
@@ -62,7 +63,7 @@ function NewRx({ q }) {
       <div className="card">
         <h3>1) اختار الصيدلية</h3>
         <div className="row g wrap bar2">
-          <button type="button" className="btn o sm" onClick={myLoc}>📍 {loc ? 'تم تحديد موقعك' : 'استخدم موقعي'}</button>
+          <button type="button" className="btn o sm" onClick={myLoc}><Icon n="pin" s={16} /> {loc ? 'تم تحديد موقعك' : 'استخدم موقعي'}</button>
           <select className="fi sel" value={gov} onChange={(e) => setGov(e.target.value)}><option value="">كل المحافظات</option>{GOV.map((g) => <option key={g}>{g}</option>)}</select>
         </div>
         {!phs && <p className="mu">جاري التحميل…</p>}
@@ -88,7 +89,7 @@ function NewRx({ q }) {
         <h3>3) بيانات التوصيل</h3>
         <Field label="رقم الموبايل" name="phone" type="tel" v={f.phone} on={set('phone')} dir="ltr" maxLength={20} />
         <Field label="عنوان التوصيل" name="address" v={f.address} on={set('address')} maxLength={300} />
-        <button type="button" className="btn o sm" onClick={async () => { try { const x = await getPos(); setDest({ lat: +x.lat.toFixed(6), lng: +x.lng.toFixed(6) }); toast('تم تحديد موقع التوصيل ✓'); } catch { toast('اسمح بالوصول للموقع'); } }}>📍 {dest ? 'تم تحديد موقع التوصيل ✓' : 'حدد موقع التوصيل (عشان تتابع المندوب)'}</button>
+        <button type="button" className="btn o sm" onClick={async () => { try { const x = await getPos(); setDest({ lat: +x.lat.toFixed(6), lng: +x.lng.toFixed(6) }); toast('تم تحديد موقع التوصيل ✓'); } catch { toast('اسمح بالوصول للموقع'); } }}><Icon n="pin" s={16} /> {dest ? 'تم تحديد موقع التوصيل ✓' : 'حدد موقع التوصيل (عشان تتابع المندوب)'}</button>
         <Field label="ملاحظات للصيدلي (اختياري)" name="note" type="textarea" v={f.note} on={set('note')} maxLength={500} placeholder="مثلاً: عندي حساسية من البنسلين" />
         <button className="btn g full" disabled={busy || prep}>{busy ? '…' : 'إرسال الروشتة للصيدلي'}</button>
       </div>
@@ -137,7 +138,7 @@ function List() {
           {r.status === 'ordered' && <p className="ok">تم تحويل الروشتة لطلب. <a className="go" href="#/orders">تابع طلبك ◂</a></p>}
           <div className="row g wrap">
             {r.status === 'quoted' && <button className="btn g sm" disabled={busy === r.id} onClick={() => accept(r)}>{busy === r.id ? '…' : 'تأكيد وإرسال كطلب'}</button>}
-            <button className="btn o sm" onClick={() => setChat(chat === r.id ? null : r.id)}>💬 {chat === r.id ? 'إخفاء الرسائل' : 'الرسائل'}</button>
+            <button className="btn o sm" onClick={() => setChat(chat === r.id ? null : r.id)}><Icon n="chat" s={16} /> {chat === r.id ? 'إخفاء الرسائل' : 'الرسائل'}</button>
             {RX_OPEN.includes(r.status) && <button className="btn o sm" onClick={() => cancel(r)}>{r.status === 'quoted' ? 'رفض العرض وإلغاء' : 'إلغاء الروشتة'}</button>}
           </div>
           {chat === r.id && <Chat rx={r} role="patient" uid={user.uid} />}

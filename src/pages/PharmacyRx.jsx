@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, query, where, doc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { RX_LABEL, RX_TONE } from '../lib/status.js';
+import { Icon } from '../icons.jsx';
 import { Badge, Field, toast } from '../ui.jsx';
 import { Thumbs, QuoteView, Chat, fmtTime } from '../rxparts.jsx';
 
@@ -116,7 +117,7 @@ export default function PharmacyRx({ uid, rows, err }) {
               <button className="btn o sm" onClick={() => setModal({ t: 'need_info', r })}>طلب توضيح</button>
               <button className="btn o sm" onClick={() => setModal({ t: 'unavailable', r })}>غير متاحة</button></>}
             {r.status === 'quoted' && <button className="btn o sm" onClick={() => setModal({ t: 'quote', r })}>تعديل العرض</button>}
-            <button className="btn o sm" onClick={() => setChat(chat === r.id ? null : r.id)}>💬 {chat === r.id ? 'إخفاء الرسائل' : 'الرسائل'}</button>
+            <button className="btn o sm" onClick={() => setChat(chat === r.id ? null : r.id)}><Icon n="chat" s={16} /> {chat === r.id ? 'إخفاء الرسائل' : 'الرسائل'}</button>
           </div>
           {chat === r.id && <Chat rx={r} role="pharmacy" uid={uid} />}
         </div>

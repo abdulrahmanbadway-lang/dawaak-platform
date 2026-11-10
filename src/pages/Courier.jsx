@@ -2,18 +2,36 @@ import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot, updateDoc, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { useAuth } from '../auth.jsx';
-import { km } from '../lib/geo.js';
+import { km, fmtKm } from '../lib/geo.js';
 import { ms } from '../lib/status.js';
-import { Badge, toast } from '../ui.jsx';
+import { useDriveRoute } from '../lib/route.js';
+import TileMap, { useSmooth } from '../tilemap.jsx';
+import { Icon } from '../icons.jsx';
+import { toast } from '../ui.jsx';
 
 const navUrl = (o) => o.dest
   ? `https://www.google.com/maps/dir/?api=1&destination=${o.dest.lat},${o.dest.lng}&travelmode=driving`
   : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(o.address);
 
+// خريطة المندوب: موقعه ← موقع العميل بمسار حقيقي
+function Nav({ o, me }) {
+  const rt = useDriveRoute(me, o.dest), m = useSmooth(me);
+  const markers = [{ id: 'dest', kind: 'dest', lat: o.dest.lat, lng: o.dest.lng, label: o.patientName }];
+  if (m) markers.push({ id: 'me', kind: 'courier', lat: m.lat, lng: m.lng, label: 'إنت', heading: me && me.heading != null && me.speed > 1 ? me.heading : null, acc: me ? me.acc : 0 });
+  const d = rt ? rt.km : me ? km(me, o.dest) * 1.3 : null;
+  return (
+    <div className="trk-map">
+      <TileMap markers={markers} route={rt ? rt.pts : null} height={300} />
+      {d != null && <div className="trk-chips"><span><Icon n="pin" s={16} /> {fmtKm(d)} للعميل</span>{rt && <span><Icon n="clock" s={16} /> حوالي {Math.max(1, Math.round(rt.min * 1.25))} دقيقة</span>}</div>}
+      {!me && <p className="mu sm2 c">ابدأ مشاركة الموقع عشان نرسم لك الطريق.</p>}
+    </div>
+  );
+}
+
 // صفحة المندوب: طلباته + مشاركة موقعه لحظياً (بتشتغل والصفحة مفتوحة)
 export default function Courier() {
   const { user, profile } = useAuth();
-  const [rows, setRows] = useState(null), [share, setShare] = useState(false), [sent, setSent] = useState(null), [busy, setBusy] = useState(null);
+  const [rows, setRows] = useState(null), [share, setShare] = useState(false), [sent, setSent] = useState(null), [busy, setBusy] = useState(null), [me, setMe] = useState(null), [open, setOpen] = useState(null);
   useEffect(() => onSnapshot(query(collection(db, 'orders'), where('courierId', '==', user.uid)),
     (s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.updatedAt) - ms(a.updatedAt))),
     (e) => toast('تعذر تحميل التوصيلات: ' + e.message)), [user.uid]);
@@ -28,6 +46,7 @@ export default function Courier() {
     if (navigator.wakeLock) navigator.wakeLock.request('screen').then((l) => { wl = l; if (stop) l.release(); }).catch(() => {});
     const wid = navigator.geolocation.watchPosition(async (p) => {
       const { latitude: lat, longitude: lng, accuracy, speed, heading } = p.coords, now = Date.now();
+      setMe({ lat, lng, acc: Math.round(accuracy), speed: speed != null && !isNaN(speed) ? speed : 0, heading: heading != null && !isNaN(heading) ? heading : null });
       const moved = last.lat == null ? 1e9 : km({ lat, lng }, last) * 1000;
       // بنبعت لما يتحرك 8 متر (بحد أدنى 5 ثواني) أو كل 20 ثانية على الأكتر، عشان نوفّر الكتابة
       if (!((now - last.t >= 5000 && moved >= 8) || now - last.t >= 20000)) return;
@@ -54,28 +73,29 @@ export default function Courier() {
     setBusy(null);
   };
   const done = (rows || []).filter((o) => o.status === 'done').length;
+  const on = share && !!ids;
   return (
-    <div>
-      <h1>توصيلاتي <span className="mu sm2">· {profile.name}</span></h1>
-      <div className="card">
-        <div className="row between wrap g">
-          <div><span className={'live' + (share && ids ? '' : ' off')}><i></i>{share && ids ? 'مشاركة الموقع شغّالة' : 'مشاركة الموقع متوقفة'}</span>
-            <p className="mu sm2">{sent ? 'آخر إرسال ' + new Date(sent.t).toLocaleTimeString('ar-EG') + ' · دقة ' + sent.acc + ' م' : 'سيب الصفحة مفتوحة والشاشة منوّرة عشان الموقع يفضل يتبعت.'}</p></div>
-          <button className={'btn ' + (share ? 'o' : 'g')} disabled={!ids} onClick={() => setShare((v) => !v)}>{share ? '⏸ إيقاف المشاركة' : '▶ ابدأ مشاركة موقعي'}</button>
-        </div>
-        {!ids && <p className="mu sm2">مفيش توصيلات شغّالة دلوقتي. أول ما الصيدلية تسلّمك طلب هيظهر هنا.</p>}
+    <div className="cur">
+      <div className={'shbar' + (on ? ' on' : '')}>
+        <div className="shi"><span className={'live' + (on ? '' : ' off')}><i></i>{on ? 'مشاركة الموقع شغّالة' : 'مشاركة الموقع متوقفة'}</span>
+          <small>{sent ? 'آخر إرسال ' + new Date(sent.t).toLocaleTimeString('ar-EG') + ' · دقة ' + sent.acc + ' م' : 'سيب الصفحة مفتوحة والشاشة منوّرة'}</small></div>
+        <button className={'sw' + (on ? ' on' : '')} role="switch" aria-checked={on} aria-label="مشاركة الموقع" disabled={!ids} onClick={() => setShare((v) => !v)}><i></i></button>
       </div>
+      <h1>توصيلاتي <span className="mu sm2">· {profile.name}</span></h1>
+      {rows && !active.length && <div className="card center empty"><Icon n="truck" s={44} /><h3>مفيش توصيلات دلوقتي</h3><p className="mu">أول ما الصيدلية تسلّمك طلب هيظهر هنا فوراً.</p></div>}
       {active.map((o) => (
-        <div className="card" key={o.id}>
-          <div className="row between wrap"><div><h3>{o.patientName} <Badge c="am">في الطريق</Badge></h3>
-            <p className="mu sm2" dir="ltr" style={{ textAlign: 'right' }}>{o.phone}</p><p className="mu sm2">{o.address}</p>{o.note && <p className="sm2">ملاحظة: {o.note}</p>}</div>
-            <b className="dist">{o.total} ج.م</b></div>
+        <div className="card dl" key={o.id}>
+          <div className="row between wrap"><div><span className="bd am">في الطريق</span><h3>{o.patientName}</h3></div><b className="dist">{o.total} ج.م</b></div>
+          <div className="kv"><span className="mu"><Icon n="pin" s={16} /></span><b>{o.address}</b></div>
+          <div className="kv"><span className="mu"><Icon n="store" s={16} /></span><b>{o.pharmacyName}</b></div>
+          {o.note && <div className="kv"><span className="mu"><Icon n="chat" s={16} /></span><b>{o.note}</b></div>}
           <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
-          <p className="sm2">من: {o.pharmacyName} · الدفع عند الاستلام {!o.dest && <span className="err">· العميل ما حدّدش موقعه على الخريطة</span>}</p>
-          <div className="row g wrap">
-            <a className="btn sm" href={navUrl(o)} target="_blank" rel="noopener noreferrer">🧭 افتح الملاحة</a>
-            <a className="btn o sm" href={'tel:' + o.phone}>📞 اتصل بالعميل</a>
-            <button className="btn g sm" disabled={busy === o.id} onClick={() => deliver(o)}>✔ تم التسليم</button>
+          <p className="sm2 mu">الدفع عند الاستلام {!o.dest && <span className="err">· العميل ما حدّدش موقعه على الخريطة</span>}</p>
+          {o.dest && <><button className="btn o sm" onClick={() => setOpen(open === o.id ? null : o.id)}><Icon n="pin" s={16} /> {open === o.id ? 'إخفاء الخريطة' : 'عرض الطريق'}</button>{open === o.id && <Nav o={o} me={me} />}</>}
+          <div className="dl-act">
+            <a className="btn" href={navUrl(o)} target="_blank" rel="noopener noreferrer"><Icon n="nav" s={18} /> افتح الملاحة</a>
+            <a className="btn o" href={'tel:' + o.phone}><Icon n="phone" s={18} /> اتصل بالعميل</a>
+            <button className="btn g" disabled={busy === o.id} onClick={() => deliver(o)}><Icon n="check" s={18} /> تم التسليم</button>
           </div>
         </div>
       ))}

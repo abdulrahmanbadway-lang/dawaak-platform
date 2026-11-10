@@ -44,7 +44,7 @@ function Orders({ uid, couriers }) {
       {rows?.map((o) => (
         <div className="card" key={o.id}>
           <div className="row between wrap"><div><h3>{o.patientName} <Badge c={o.status === 'new' ? 'am' : o.status === 'cancelled' ? 'rd' : 'ok'}>{LABEL[o.status]}</Badge> {o.source === 'rx' && <Badge c="am">من روشتة</Badge>}</h3>
-            {o.courierName && <p className="sm2">🛵 {o.courierName}{o.status === 'out' && <> · <a className="go" href={'#/track/' + o.id}>تتبع على الخريطة ◂</a></>}</p>}
+            {o.courierName && <p className="sm2">المندوب: {o.courierName}{o.status === 'out' && <> · <a className="go" href={'#/track/' + o.id}>تتبع على الخريطة ◂</a></>}</p>}
             <p className="mu sm2" dir="ltr" style={{ textAlign: 'right' }}>{o.phone}</p><p className="mu sm2">{o.address}</p>{o.note && <p className="sm2">ملاحظة: {o.note}</p>}</div><b className="dist">{o.total} ج.م</b></div>
           <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
           <Steps status={o.status} />
@@ -53,7 +53,7 @@ function Orders({ uid, couriers }) {
       ))}
       {pick && <div className="mo" onClick={(e) => e.target === e.currentTarget && setPick(null)}><div className="card narrow">
         <h2>مين هيوصّل الطلب؟</h2><p className="mu sm2">اختار مندوب عشان العميل يتابعه على الخريطة.</p>
-        {couriers.map((c) => <button key={c.id} className="btn o full" onClick={() => { move(pick, 'out', c); setPick(null); }}>🛵 {c.name} · {c.phone}</button>)}
+        {couriers.map((c) => <button key={c.id} className="btn o full" onClick={() => { move(pick, 'out', c); setPick(null); }}>{c.name} · {c.phone}</button>)}
         <button className="btn full" onClick={() => { move(pick, 'out', null); setPick(null); }}>بدون مندوب (توصيل من غير تتبع)</button>
         <button className="btn o full" onClick={() => setPick(null)}>إلغاء</button>
       </div></div>}
@@ -84,7 +84,7 @@ function Profile({ uid }) {
       <Field label="العنوان" name="address" v={f.address} on={set('address')} />
       <Field label="مواعيد العمل" name="hours" v={f.hours || ''} on={set('hours')} placeholder="مثلاً 9 ص – 12 م" />
       <div className="row g"><div style={{ flex: 1 }}><Field label="خط العرض (lat)" name="lat" v={f.lat ?? ''} on={set('lat')} dir="ltr" /></div><div style={{ flex: 1 }}><Field label="خط الطول (lng)" name="lng" v={f.lng ?? ''} on={set('lng')} dir="ltr" /></div></div>
-      <button type="button" className="btn o sm" id="myloc" onClick={loc}>📍 استخدم موقعي الحالي</button>
+      <button type="button" className="btn o sm" id="myloc" onClick={loc}>استخدم موقعي الحالي</button>
       {f.lat == null && <p className="err">حدد موقع الصيدلية عشان تظهر للمرضى مرتبة بالأقرب.</p>}
       <Field label="الصيدلية مفتوحة الآن" name="open" type="checkbox" v={f.open} on={set('open')} />
       <button className="btn full">حفظ</button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadHome } from '../lib/featured.js';
+import { Icon } from '../icons.jsx';
 import { ProdCard, PharmCard, goSearch } from '../components.jsx';
 
 const FAQ = [
@@ -8,7 +9,7 @@ const FAQ = [
   ['إزاي أعرف أقرب صيدلية عندها الدوا؟', 'ابحث باسم الدوا أو المادة الفعالة واضغط "استخدم موقعي"، وهنرتب لك الصيدليات بالأقرب، واللي الدوا متاح فيها الأول.'],
   ['طرق الدفع والتوصيل؟', 'الدفع عند الاستلام حالياً، والتوصيل من الصيدلية اللي اخترتها.'],
 ];
-const STEPS = [['🔎', 'ابحث عن الدوا', 'اكتب اسم الدوا أو المادة الفعالة.'], ['📍', 'قارن الصيدليات', 'مرتبة بالأقرب، مع السعر والتوافر.'], ['🛒', 'اطلب بضغطة', 'اختار الكمية وأكمل الطلب من صيدلية واحدة.'], ['🚚', 'تابع طلبك', 'من التحضير لحد التسليم لحظة بلحظة.']];
+const STEPS = [['search', 'ابحث عن الدوا', 'اكتب اسم الدوا أو المادة الفعالة.'], ['pin', 'قارن الصيدليات', 'مرتبة بالأقرب، مع السعر والتوافر.'], ['bag', 'اطلب بضغطة', 'اختار الكمية وأكمل الطلب من صيدلية واحدة.'], ['truck', 'تابع طلبك', 'من التحضير لحد التسليم لحظة بلحظة.']];
 
 export default function Home() {
   const [q, setQ] = useState('');
@@ -41,13 +42,13 @@ export default function Home() {
           <div className="lgo"><img src="/assets/mark.png" alt="" /></div>
           <div className="fc f1"><span className="mu">{fph ? fph.governorate : 'أقرب صيدلية'}</span><b>{fph ? fph.name : 'صيدلية قريبة منك'}</b><span className="bd ok">{fph?.open === false ? 'مغلقة حالياً' : 'مفتوحة الآن'}</span></div>
           <div className="fc f2"><span className="mu">{fp ? 'متاح الآن' : 'ابحث عن دواك'}</span><b>{fp ? fp.name : 'اسم الدوا'}</b><span className="ok">{fp ? (fp.min === fp.max ? fp.min : 'من ' + fp.min) + ' ج.م' : 'السعر والتوافر'}</span></div>
-          <div className="fc f3"><b>🚚 تتبّع طلبك</b><div className="msteps"><i className="on"></i><i className="on"></i><i></i><i></i></div><span className="mu">قيد التحضير</span></div>
+          <div className="fc f3"><b className="row g"><Icon n="truck" s={18} /> تتبّع طلبك</b><div className="msteps"><i className="on"></i><i className="on"></i><i></i><i></i></div><span className="mu">قيد التحضير</span></div>
         </div>
       </section>
 
       <section className="sec">
         <h2>إزاي <span className="gr">دواك</span> بيشتغل؟</h2>
-        <div className="how">{STEPS.map(([i, t, d], k) => <div className="card" key={k}><div className="hn">{i}</div><h3>{t}</h3><p className="mu">{d}</p></div>)}</div>
+        <div className="how">{STEPS.map(([i, t, d], k) => <div className="card" key={k}><div className="hn"><Icon n={i} s={24} /></div><h3>{t}</h3><p className="mu">{d}</p></div>)}</div>
       </section>
 
       <section className="sec">
@@ -65,9 +66,9 @@ export default function Home() {
       <section className="sec">
         <h2>أمانك <span className="gr">أولاً</span></h2>
         <div className="how t3">
-          <div className="card"><div className="hn">✚</div><h3>صيدليات بترخيص</h3><p className="mu">كل صيدلية بنتحقق من ترخيصها وبتظهر بعلامة "موثّقة".</p></div>
-          <div className="card"><div className="hn">◆</div><h3>خصوصية بياناتك</h3><p className="mu">بياناتك ومعلومات طلباتك مبتتشاركش مع أي طرف تاني.</p></div>
-          <div className="card"><div className="hn">✓</div><h3>أدوية الروشتة بمراجعة</h3><p className="mu">الأدوية اللي بتحتاج روشتة بتتطلب بمراجعة صيدلي مرخّص.</p></div>
+          <div className="card"><div className="hn"><Icon n="shield" s={24} /></div><h3>صيدليات بترخيص</h3><p className="mu">كل صيدلية بنتحقق من ترخيصها وبتظهر بعلامة "موثّقة".</p></div>
+          <div className="card"><div className="hn"><Icon n="lock" s={24} /></div><h3>خصوصية بياناتك</h3><p className="mu">بياناتك ومعلومات طلباتك مبتتشاركش مع أي طرف تاني.</p></div>
+          <div className="card"><div className="hn"><Icon n="rx" s={24} /></div><h3>أدوية الروشتة بمراجعة</h3><p className="mu">الأدوية اللي بتحتاج روشتة بتتطلب بمراجعة صيدلي مرخّص.</p></div>
         </div>
       </section>
 

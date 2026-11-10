@@ -51,7 +51,7 @@ export default function Couriers({ uid, rows }) {
       {rows && !rows.length && <div className="card center"><p className="mu">لسه مضفتش مناديب. من غير مندوب الطلب بيتوصّل من غير تتبع مباشر.</p></div>}
       {rows?.map((c) => (
         <div className="card row between wrap" key={c.id}>
-          <div><h3>🛵 {c.name} <Badge c={c.active ? 'ok' : 'rd'}>{c.active ? 'شغّال' : 'موقوف'}</Badge></h3><p className="mu sm2" dir="ltr" style={{ textAlign: 'right' }}>{c.phone}</p></div>
+          <div><h3>{c.name} <Badge c={c.active ? 'ok' : 'rd'}>{c.active ? 'شغّال' : 'موقوف'}</Badge></h3><p className="mu sm2" dir="ltr" style={{ textAlign: 'right' }}>{c.phone}</p></div>
           <button className="btn o sm" onClick={() => toggle(c)}>{c.active ? 'إيقاف' : 'تفعيل'}</button>
         </div>
       ))}

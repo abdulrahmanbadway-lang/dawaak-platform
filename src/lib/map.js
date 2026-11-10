@@ -18,3 +18,16 @@ export const etaMin = (km, speedMs) => {
   const kmh = speedMs != null && speedMs * 3.6 > 8 ? speedMs * 3.6 : 22;
   return Math.max(1, Math.round(((km * 1.3) / kmh) * 60));
 };
+// عكس project: من بكسل العالم لإحداثيات
+export const unproject = ({ x, y }, z) => {
+  const k = TILE * 2 ** z;
+  return { lat: (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / k))) * 180) / Math.PI, lng: (x / k) * 360 - 180 };
+};
+// كام متر في البكسل الواحد عند خط عرض وزووم معينين
+export const mPerPx = (lat, z) => (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** z;
+// اتجاه من نقطة لنقطة بالدرجات (0 = شمال)
+export const bearing = (a, b) => {
+  const r = (d) => (d * Math.PI) / 180, y = Math.sin(r(b.lng - a.lng)) * Math.cos(r(b.lat));
+  const x = Math.cos(r(a.lat)) * Math.sin(r(b.lat)) - Math.sin(r(a.lat)) * Math.cos(r(b.lat)) * Math.cos(r(b.lng - a.lng));
+  return (Math.atan2(y, x) * 180) / Math.PI;
+};
