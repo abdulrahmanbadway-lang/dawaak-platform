@@ -5,12 +5,12 @@ import { GOV } from '../lib/gov.js';
 import { Field, toast } from '../ui.jsx';
 
 export default function AuthPage({ mode, q }) {
-  const { profile, login, register } = useAuth();
+  const { profile, issue, login, register } = useAuth();
   const [role, setRole] = useState(q.get('role') === 'pharmacy' ? 'pharmacy' : 'patient');
   const [f, setF] = useState({ name: '', email: '', password: '', pname: '', license: '', phone: '', governorate: '', address: '' });
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
-  useEffect(() => { if (profile) go({ pharmacy: '/pharmacy', courier: '/courier' }[profile.role] || '/search'); }, [profile]);
+  useEffect(() => { if (profile) go({ pharmacy: '/pharmacy', courier: '/courier', admin: '/admin' }[profile.role] || '/search'); }, [profile]);
 
   const submit = async (e) => {
     e.preventDefault(); setErr('');
@@ -49,6 +49,7 @@ export default function AuthPage({ mode, q }) {
         <Field label="العنوان بالتفصيل" name="address" v={f.address} on={set('address')} />
       </>}
       {err && <p className="err">{err}</p>}
+      {!err && issue && <p className="err" dir="auto">{issue}</p>}
       <button className="btn full" disabled={busy}>{busy ? '…' : mode === 'login' ? 'دخول' : 'إنشاء الحساب'}</button>
       <p className="mu c">{mode === 'login' ? <>معندكش حساب؟ <a href="#/register">سجّل دلوقتي</a></> : <>عندك حساب؟ <a href="#/login">سجّل دخول</a></>}</p>
     </form>

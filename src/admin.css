@@ -1,0 +1,50 @@
+/* لوحة تحكم الأدمن (يتحمّل مع صفحة الأدمن بس) */
+.adm{padding-bottom:24px}
+.adm-hd{margin:18px 0 6px}.adm-hd h1{margin:0 0 2px;font-size:clamp(26px,4vw,36px)}
+.adm-live{display:inline-flex;align-items:center;gap:7px;background:var(--mt);color:#0a7a54;border-radius:30px;padding:5px 14px;font-weight:800;font-size:13px}
+.adm-live i{width:8px;height:8px;border-radius:50%;background:var(--gr);box-shadow:0 0 0 0 rgba(37,168,119,.55);animation:admp 1.8s infinite}
+@keyframes admp{70%{box-shadow:0 0 0 8px rgba(37,168,119,0)}100%{box-shadow:0 0 0 0 rgba(37,168,119,0)}}
+.adm-tabs{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 10px;margin:8px 0 14px;border-bottom:1px solid var(--ln);scrollbar-width:none}.adm-tabs::-webkit-scrollbar{display:none}
+.adm-tabs button{display:inline-flex;align-items:center;gap:7px;flex:none;border:1.5px solid transparent;background:none;color:var(--mu);font:inherit;font-weight:700;font-size:14.5px;padding:8px 16px;border-radius:30px;cursor:pointer;white-space:nowrap}
+.adm-tabs button:hover{background:var(--mt);color:var(--bl)}
+.adm-tabs button.on{background:var(--bl);color:#fff}
+.adm-tabs button b{background:var(--gr);color:#fff;border-radius:20px;font-size:11.5px;min-width:20px;height:20px;line-height:20px;text-align:center;padding:0 6px}
+.adm-tabs button .ic-svg{position:static;inset:auto}
+.adm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.adm-k{display:flex;gap:14px;align-items:center;background:var(--sf);border:1px solid var(--ln);border-radius:20px;padding:16px 18px;box-shadow:var(--sh2)}
+.adm-k b{display:block;font-size:26px;font-weight:900;line-height:1.2;color:var(--tx)}.adm-k span{display:block;font-size:13.5px;color:var(--mu);font-weight:600}.adm-k small{display:block;font-size:12px;color:var(--mu);margin-top:2px}
+.adm-ki{flex:none;width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--mt);color:var(--bl)}
+.adm-ki.gr{background:rgba(37,168,119,.16);color:#0a7a54}.adm-ki.am{background:#FFF0CC;color:#8a5a00}
+.adm-ki .ic-svg{position:static;inset:auto}
+.adm-two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.adm-two>*{min-width:0}
+.adm-bars{display:flex;align-items:flex-end;gap:10px;height:190px;padding-top:10px}
+.adm-bars .bar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;min-width:0}
+.adm-bars .bar i{display:block;width:100%;max-width:38px;border-radius:9px 9px 3px 3px;background:linear-gradient(180deg,var(--bl2),var(--bl))}
+.adm-bars .bar span{font-weight:800;font-size:13px}.adm-bars .bar small{font-size:11.5px;color:var(--mu);white-space:nowrap}
+.adm-feed{list-style:none;padding:0;margin:8px 0 0}.adm-feed li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px dashed var(--ln);font-size:14px}.adm-feed li:first-child{border-top:0}
+.adm-feed li i{flex:none;width:28px;height:28px;border-radius:50%;background:var(--mt);color:var(--bl);display:flex;align-items:center;justify-content:center}.adm-feed li i .ic-svg{position:static;inset:auto}
+.adm-feed li span{flex:1;min-width:0}.adm-feed li small{flex:none;color:var(--mu);font-size:12px;white-space:nowrap}
+.adm-bar{margin:4px 0 12px;align-items:center}.adm-q{flex:1;min-width:200px;max-width:420px}
+.adm-seg{display:inline-flex;background:var(--sf);border:1.5px solid var(--ln);border-radius:30px;padding:3px}.adm-seg button{border:0;background:none;font:inherit;font-weight:700;font-size:13.5px;color:var(--mu);padding:5px 16px;border-radius:30px;cursor:pointer}.adm-seg button.on{background:var(--bl);color:#fff}
+.adm-chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.adm-chips span{background:var(--sf);border:1px solid var(--ln);border-radius:30px;padding:4px 14px;font-size:13px;color:var(--mu)}.adm-chips b{color:var(--tx)}
+.adm-list{padding:6px 18px}.adm-list ul{list-style:none;padding:0;margin:0}
+.adm-s{display:grid;grid-template-columns:14px 38px minmax(150px,1.4fr) minmax(120px,1fr) minmax(130px,1fr) 72px;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--ln)}.adm-s:first-child{border-top:0}
+.adm-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--bl2),var(--gr));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+.adm-sm{min-width:0}.adm-sm b{font-weight:800}.adm-si{text-align:start;font-size:13.5px}.adm-si small{color:var(--mu)}.adm-st{text-align:left}
+.adm-chip{display:inline-flex;align-items:center;gap:5px;background:var(--mt);color:var(--bl);border-radius:20px;padding:3px 11px;font-size:12.5px;font-weight:700}.adm-chip .ic-svg{position:static;inset:auto}
+.adm-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#9db0bd;flex:none}.adm-dot.on{background:var(--gr);box-shadow:0 0 0 4px rgba(37,168,119,.22)}
+.adm-tw{padding:0;overflow-x:auto}
+.adm-t{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}
+.adm-t th{background:var(--bg);text-align:start;color:var(--mu);font-size:12.5px;font-weight:800;padding:11px 14px;white-space:nowrap;position:sticky;top:0}
+.adm-t td{padding:11px 14px;border-top:1px solid var(--ln);vertical-align:middle;white-space:nowrap}
+.adm-t tbody tr:hover{background:var(--bg)}
+.adm-ph h3{font-size:17px}.adm-ph p{margin-top:3px}
+.adm-empty{text-align:center;color:var(--mu);padding:30px 14px}
+.adm-ul{padding-inline-start:20px;color:var(--mu);margin:8px 0}.adm-ul li{margin:4px 0}
+@media (max-width:860px){.adm-two{grid-template-columns:1fr}.adm-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:760px){
+  .adm-grid{grid-template-columns:1fr 1fr;gap:10px}.adm-k{padding:12px;gap:10px;flex-direction:column;align-items:flex-start}.adm-k b{font-size:22px}.adm-ki{width:38px;height:38px;border-radius:11px}
+  .adm-s{grid-template-columns:12px 36px 1fr auto;grid-template-areas:"d a m s" ". . p p" ". . i i";row-gap:6px}
+  .adm-s>:nth-child(1){grid-area:d}.adm-s>:nth-child(2){grid-area:a}.adm-s>:nth-child(3){grid-area:m}.adm-s>:nth-child(4){grid-area:p}.adm-s>:nth-child(5){grid-area:i;text-align:start}.adm-s>:nth-child(6){grid-area:s}
+  .adm-list{padding:2px 14px}.adm-q{max-width:none}
+}

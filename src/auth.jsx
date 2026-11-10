@@ -20,12 +20,21 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(configured);
+  const [issue, setIssue] = useState('');
   const busy = useRef(false);
 
   const load = async (u) => {
-    if (!u) return setProfile(null);
-    const s = await getDoc(doc(db, 'users', u.uid));
-    setProfile(s.exists() ? { id: u.uid, ...s.data() } : null);
+    if (!u) { setIssue(''); return setProfile(null); }
+    // لو القراءة فشلت أو مفيش ملف للحساب، نوضّح السبب على الشاشة بدل ما الدخول يفضل صامت
+    try {
+      const s = await getDoc(doc(db, 'users', u.uid));
+      if (s.exists()) { setIssue(''); setProfile({ id: u.uid, ...s.data() }); }
+      else { setIssue('الحساب سجّل دخول بس مفيش ملف ليه في Firestore (users/' + u.uid + '). أنشئ الملف أو سجّل حساب جديد.'); setProfile(null); }
+    } catch (e) {
+      console.error('load profile failed', e);
+      setIssue('تعذر قراءة ملف الحساب: ' + (e.code || e.message) + (/permission/i.test(e.code || e.message) ? ' (قواعد Firestore بترفض القراءة)' : ''));
+      setProfile(null);
+    }
   };
   useEffect(() => {
     if (!configured) return;
@@ -52,5 +61,5 @@ export function AuthProvider({ children }) {
     } finally { busy.current = false; }
   };
   const logout = () => signOut(auth);
-  return <Ctx.Provider value={{ user, profile, loading, login, register, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, profile, loading, issue, login, register, logout }}>{children}</Ctx.Provider>;
 }
