@@ -5,13 +5,22 @@ import { GOV } from '../lib/gov.js';
 import { Field, toast } from '../ui.jsx';
 
 export default function AuthPage({ mode, q }) {
-  const { profile, issue, login, register } = useAuth();
+  const { profile, issue, login, register, resetPassword } = useAuth();
   const [role, setRole] = useState(q.get('role') === 'pharmacy' ? 'pharmacy' : 'patient');
   const [f, setF] = useState({ name: '', email: '', password: '', pname: '', license: '', phone: '', governorate: '', address: '' });
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
+  const [reset, setReset] = useState(false), [sent, setSent] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
   useEffect(() => { if (profile) go({ pharmacy: '/pharmacy', courier: '/courier', admin: '/admin' }[profile.role] || '/search'); }, [profile]);
 
+  const sendReset = async (e) => {
+    e.preventDefault(); setErr('');
+    if (!/^\S+@\S+\.\S+$/.test(f.email)) return setErr('اكتب بريد إلكتروني صحيح');
+    setBusy(true);
+    try { await resetPassword(f.email.trim()); setSent(true); }
+    catch (x) { setErr(authError(x)); }
+    setBusy(false);
+  };
   const submit = async (e) => {
     e.preventDefault(); setErr('');
     if (!/^\S+@\S+\.\S+$/.test(f.email)) return setErr('اكتب بريد إلكتروني صحيح');
@@ -30,6 +39,21 @@ export default function AuthPage({ mode, q }) {
     } catch (x) { setErr(authError(x)); }
     setBusy(false);
   };
+  if (mode === 'login' && reset) return (
+    <form className="card narrow" onSubmit={sendReset}>
+      <h2>استرجاع كلمة المرور</h2>
+      {sent ? <>
+        <p className="mu">لو البريد ده مسجّل عندنا، هيوصلك رابط لتعيين كلمة مرور جديدة. افتح الرسالة واضغط على الرابط. لو مش لاقيها شوف مجلد الرسائل غير المرغوبة (Spam).</p>
+        <button type="button" className="btn full" onClick={() => { setReset(false); setSent(false); }}>رجوع لتسجيل الدخول</button>
+      </> : <>
+        <p className="mu">اكتب بريدك الإلكتروني اللي سجّلت بيه وهنبعتلك رابط لتعيين كلمة مرور جديدة.</p>
+        <Field label="البريد الإلكتروني" name="email" type="email" v={f.email} on={set('email')} autoComplete="email" dir="ltr" />
+        {err && <p className="err">{err}</p>}
+        <button className="btn full" disabled={busy}>{busy ? '…' : 'إرسال رابط التعيين'}</button>
+        <p className="mu c"><a href="#/login" onClick={(e) => { e.preventDefault(); setReset(false); setErr(''); }}>رجوع لتسجيل الدخول</a></p>
+      </>}
+    </form>
+  );
   return (
     <form className="card narrow" onSubmit={submit}>
       <h2>{mode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}</h2>
@@ -51,6 +75,7 @@ export default function AuthPage({ mode, q }) {
       {err && <p className="err">{err}</p>}
       {!err && issue && <p className="err" dir="auto">{issue}</p>}
       <button className="btn full" disabled={busy}>{busy ? '…' : mode === 'login' ? 'دخول' : 'إنشاء الحساب'}</button>
+      {mode === 'login' && <p className="c"><a href="#/login" style={{ color: 'var(--bl2)', fontWeight: 700 }} onClick={(e) => { e.preventDefault(); setReset(true); setErr(''); }}>نسيت كلمة السر؟</a></p>}
       <p className="mu c">{mode === 'login' ? <>معندكش حساب؟ <a href="#/register">سجّل دلوقتي</a></> : <>عندك حساب؟ <a href="#/login">سجّل دخول</a></>}</p>
     </form>
   );

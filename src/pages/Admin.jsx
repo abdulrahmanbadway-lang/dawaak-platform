@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { collection, getDocs, onSnapshot, query, orderBy, limit, updateDoc, doc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase.js';
+import { collection, getDocs, onSnapshot, query, orderBy, limit, updateDoc, deleteDoc, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { db, auth } from '../firebase.js';
+import { useAuth } from '../auth.jsx';
+import { RX_LABEL, RX_TONE } from '../lib/status.js';
 import { toast, Badge } from '../ui.jsx';
 import { Icon } from '../icons.jsx';
 import '../admin.css';
@@ -55,7 +58,7 @@ function useData() {
     const b = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(200)), (s) => setOrders(s.docs.map((d) => ({ id: d.id, ...d.data() }))), bad);
     return () => { a(); b(); };
   }, [loadStatic]);
-  return { pres, orders, users, phs, err, reload: loadStatic, setPhs };
+  return { pres, orders, users, phs, err, reload: loadStatic, setPhs, setUsers };
 }
 
 const Kpi = ({ ic, tone = '', v, l, sub }) => (
@@ -137,12 +140,25 @@ function Live({ sessions, online, recent, now }) {
   );
 }
 
-function Users({ users, sessions, now, onlineIds }) {
+function Users({ users, setUsers, sessions, now, onlineIds, meId }) {
   const [q, setQ] = useState(''), [role, setRole] = useState('');
   const seen = useMemo(() => { const m = {}; sessions.forEach((s) => { if (s.uid) m[s.uid] = s; }); return m; }, [sessions]);
   const rows = (users || []).filter((u) => (!role || u.role === role) && (!q || [u.name, u.email].join(' ').toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => (ms(b.createdAt) || 0) - (ms(a.createdAt) || 0));
-  const exp = () => download('dawaak-users.csv', csvText([['الاسم', 'البريد', 'الدور', 'تاريخ التسجيل', 'آخر ظهور', 'آخر IP', 'الجهاز'], ...rows.map((u) => { const s = seen[u.id]; return [u.name, u.email, ROLE[u.role] || u.role, dt(ms(u.createdAt)), s ? dt(s.t) : '', s?.ip || '', s?.dev || '']; })]));
+  const exp = () => download('dawaak-users.csv', csvText([['الاسم', 'البريد', 'الدور', 'محظور', 'تاريخ التسجيل', 'آخر ظهور', 'آخر IP', 'الجهاز'], ...rows.map((u) => { const s = seen[u.id]; return [u.name, u.email, ROLE[u.role] || u.role, u.blocked === true ? 'نعم' : '', dt(ms(u.createdAt)), s ? dt(s.t) : '', s?.ip || '', s?.dev || '']; })]));
+  const block = async (u) => {
+    const on = u.blocked !== true;
+    if (!confirm(on ? `حظر ${u.name}؟\nمش هيقدر يعمل طلبات ولا روشتات ولا يعدّل حاجة، وهيتم تسجيل خروجه.` : `فك الحظر عن ${u.name}؟`)) return;
+    try {
+      await updateDoc(doc(db, 'users', u.id), { blocked: on, blockedAt: serverTimestamp() });
+      setUsers((l) => l.map((x) => (x.id === u.id ? { ...x, blocked: on } : x))); toast(on ? 'تم الحظر ✓' : 'تم فك الحظر ✓');
+    } catch (e) { toast('تعذر التنفيذ: ' + (e.code || e.message)); }
+  };
+  const reset = async (u) => {
+    if (!confirm(`نبعت رابط تعيين كلمة سر جديدة على ${u.email}؟`)) return;
+    try { await sendPasswordResetEmail(auth, u.email); toast('اتبعت الرابط على ' + u.email); }
+    catch (e) { toast('تعذر الإرسال: ' + (e.code || e.message)); }
+  };
   return (
     <>
       <div className="row g wrap adm-bar">
@@ -151,10 +167,74 @@ function Users({ users, sessions, now, onlineIds }) {
         <button className="btn o sm" onClick={exp}>تصدير CSV ({rows.length})</button>
       </div>
       <div className="card adm-tw">{!users ? <Empty>جاري التحميل…</Empty> : !rows.length ? <Empty>مفيش نتايج</Empty> :
-        <table className="adm-t"><thead><tr><th></th><th>الاسم</th><th>البريد</th><th>الدور</th><th>سجّل</th><th>آخر ظهور</th><th>آخر IP</th><th>الجهاز</th></tr></thead>
-          <tbody>{rows.map((u) => { const s = seen[u.id]; return (
-            <tr key={u.id}><td><Dot on={onlineIds.has(u.id)} /></td><td><b>{u.name}</b></td><td dir="ltr" className="mu">{u.email}</td><td><Badge c={u.role === 'admin' ? 'am' : ''}>{ROLE[u.role] || u.role}</Badge></td>
-              <td className="mu">{dt(ms(u.createdAt))}</td><td>{s ? ago(s.t, now) : <span className="mu">لسه ما دخلش بعد التحديث</span>}</td><td dir="ltr">{s?.ip || '—'}{s?.cc ? ' · ' + s.cc : ''}</td><td className="mu">{s?.dev || '—'}</td></tr>); })}</tbody></table>}</div>
+        <table className="adm-t"><thead><tr><th></th><th>الاسم</th><th>البريد</th><th>الدور</th><th>سجّل</th><th>آخر ظهور</th><th>آخر IP</th><th>الجهاز</th><th>إجراءات</th></tr></thead>
+          <tbody>{rows.map((u) => { const s = seen[u.id], locked = u.role === 'admin' || u.id === meId; return (
+            <tr key={u.id} className={u.blocked === true ? 'adm-blk' : ''}><td><Dot on={onlineIds.has(u.id)} /></td><td><b>{u.name}</b> {u.blocked === true && <Badge c="rd">محظور</Badge>}</td><td dir="ltr" className="mu">{u.email}</td><td><Badge c={u.role === 'admin' ? 'am' : ''}>{ROLE[u.role] || u.role}</Badge></td>
+              <td className="mu">{dt(ms(u.createdAt))}</td><td>{s ? ago(s.t, now) : <span className="mu">لسه ما دخلش بعد التحديث</span>}</td><td dir="ltr">{s?.ip || '—'}{s?.cc ? ' · ' + s.cc : ''}</td><td className="mu">{s?.dev || '—'}</td>
+              <td><div className="row g"><button className="btn o sm" onClick={() => reset(u)} title="يبعت رابط تعيين كلمة سر على بريده">رابط كلمة السر</button>
+                <button className={'btn sm' + (u.blocked === true ? ' g' : ' o')} disabled={locked} title={locked ? 'مينفعش حظر الأدمن أو حسابك' : ''} onClick={() => block(u)}>{u.blocked === true ? 'فك الحظر' : 'حظر'}</button></div></td></tr>); })}</tbody></table>}</div>
+      <p className="mu sm2">كلمات المرور مش بتتخزّن في أي مكان مقروء (Firebase بيشفّرها ومحدش يقدر يشوفها، ولا حتى الأدمن). لو مستخدم نسي كلمته اضغط "رابط كلمة السر" وهيوصله إيميل لتعيين كلمة جديدة.
+        الحظر بيمنع الحساب فعليًا من الكتابة وقراءة الطلبات والروشتات (بقواعد Firestore)، لكن مقدرش أمنعه من تسجيل حساب جديد بإيميل تاني.</p>
+    </>
+  );
+}
+
+function ProductsAdmin({ phs }) {
+  const [rows, setRows] = useState(null), [q, setQ] = useState(''), [ph, setPh] = useState('');
+  const load = useCallback(async () => {
+    const s = await getDocs(query(collection(db, 'products'), limit(500)));
+    setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+  }, []);
+  useEffect(() => { load().catch((e) => toast('تعذر تحميل المنتجات: ' + (e.code || e.message))); }, [load]);
+  const nameOf = (id) => (phs || []).find((p) => p.id === id)?.name || id.slice(0, 6);
+  const del = async (p) => {
+    if (!confirm(`حذف "${p.name}" من ${nameOf(p.pharmacyId)}؟\nالحذف نهائي.`)) return;
+    try { await deleteDoc(doc(db, 'products', p.id)); setRows((l) => l.filter((x) => x.id !== p.id)); toast('تم الحذف ✓'); }
+    catch (e) { toast('تعذر الحذف: ' + (e.code || e.message)); }
+  };
+  const list = (rows || []).filter((p) => (!ph || p.pharmacyId === ph) && (!q || [p.name, p.ingredient].join(' ').toLowerCase().includes(q.toLowerCase())))
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ar'));
+  return (
+    <>
+      <div className="row g wrap adm-bar">
+        <input className="fi adm-q" placeholder="ابحث باسم المنتج أو المادة الفعالة…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <select className="fi sel" value={ph} onChange={(e) => setPh(e.target.value)}><option value="">كل الصيدليات</option>{(phs || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+        <span className="mu sm2">{rows ? list.length + ' منتج' : ''}</span>
+      </div>
+      <div className="card adm-tw">{!rows ? <Empty>جاري التحميل…</Empty> : !list.length ? <Empty>مفيش منتجات</Empty> :
+        <table className="adm-t"><thead><tr><th></th><th>المنتج</th><th>الصيدلية</th><th>التفاصيل</th><th>السعر</th><th>المخزون</th><th>صورة</th><th></th></tr></thead>
+          <tbody>{list.map((p) => <tr key={p.id}>
+            <td><span className="adm-th">{p.imageUrl ? <img src={p.imageUrl} alt="" loading="lazy" /> : <Icon n="pill" s={20} />}</span></td>
+            <td><b>{p.name}</b> {p.rx && <Badge c="am">روشتة</Badge>}</td><td>{nameOf(p.pharmacyId)}</td>
+            <td className="mu">{[p.dose, p.form, p.ingredient].filter(Boolean).join(' · ') || '—'}</td><td>{money(p.price)}</td>
+            <td><Badge c={p.stock > 0 ? (p.stock < 5 ? 'am' : '') : 'rd'}>{p.stock > 0 ? p.stock : 'نفد'}</Badge></td>
+            <td className="mu">{p.imageUrl ? 'فيه' : 'مفيش'}</td>
+            <td><button className="btn o sm" onClick={() => del(p)}>حذف</button></td></tr>)}</tbody></table>}</div>
+      <p className="mu sm2">بيعرض أول 500 منتج. الحذف نهائي، والقواعد بتسمح للأدمن بحذف أي منتج ولصاحب الصيدلية بحذف منتجه بس.</p>
+    </>
+  );
+}
+
+function RxAdmin({ now }) {
+  const [rows, setRows] = useState(null), [st, setSt] = useState('');
+  useEffect(() => {
+    getDocs(query(collection(db, 'prescriptions'), orderBy('createdAt', 'desc'), limit(200)))
+      .then((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() }))))
+      .catch((e) => toast('تعذر تحميل الروشتات: ' + (e.code || e.message)));
+  }, []);
+  const list = (rows || []).filter((r) => !st || r.status === st);
+  return (
+    <>
+      <div className="row g wrap adm-bar">
+        <select className="fi sel" value={st} onChange={(e) => setSt(e.target.value)}><option value="">كل الحالات</option>{Object.entries(RX_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+        <span className="mu sm2">{rows ? list.length + ' روشتة' : ''}</span>
+      </div>
+      <div className="card adm-tw">{!rows ? <Empty>جاري التحميل…</Empty> : !list.length ? <Empty>مفيش روشتات</Empty> :
+        <table className="adm-t"><thead><tr><th>#</th><th>المريض</th><th>الصيدلية</th><th>الحالة</th><th>الصور</th><th>عرض السعر</th><th>وقت الرفع</th></tr></thead>
+          <tbody>{list.map((r) => <tr key={r.id}><td dir="ltr" className="mu">{r.id.slice(0, 6)}</td><td><b>{r.patientName}</b></td><td>{r.pharmacyName}</td>
+            <td><Badge c={RX_TONE[r.status] || ''}>{RX_LABEL[r.status] || r.status}</Badge></td><td>{Array.isArray(r.images) ? r.images.length : 0}</td>
+            <td>{r.quote?.total ? money(r.quote.total) : '—'}</td><td className="mu">{dt(ms(r.createdAt))} <small>({ago(ms(r.createdAt), now)})</small></td></tr>)}</tbody></table>}</div>
+      <p className="mu sm2">بيعرض بيانات الروشتة بدون الصور عن قصد لخصوصية المرضى. تنبيه: قواعد Firestore بتسمح للأدمن بقراءة مستند الروشتة كامل (بما فيه الصور)، فاعتبر الصلاحية دي حساسة وما تديهاش لأي حد غيرك.</p>
     </>
   );
 }
@@ -238,11 +318,12 @@ function System({ sessions, now }) {
   );
 }
 
-const TABS = [['overview', 'نظرة عامة', 'home'], ['live', 'مباشر', 'bolt'], ['users', 'المستخدمون', 'users'], ['pharmacies', 'الصيدليات', 'store'], ['orders', 'الطلبات', 'bag'], ['system', 'النظام', 'shield']];
+const TABS = [['overview', 'نظرة عامة', 'home'], ['live', 'مباشر', 'bolt'], ['users', 'المستخدمون', 'users'], ['pharmacies', 'الصيدليات', 'store'], ['products', 'المنتجات', 'pill'], ['orders', 'الطلبات', 'bag'], ['rx', 'الروشتات', 'rx'], ['system', 'النظام', 'shield']];
 
 export default function Admin() {
   const [tab, setTab] = useState('overview');
-  const { pres, orders, users, phs, err, reload, setPhs } = useData();
+  const { user: me } = useAuth();
+  const { pres, orders, users, phs, err, reload, setPhs, setUsers } = useData();
   const now = useNow(15000);
   const uById = useMemo(() => Object.fromEntries((users || []).map((u) => [u.id, u])), [users]);
   const sessions = useMemo(() => (pres || []).map((r) => { const u = r.uid ? uById[r.uid] : null; return { ...r, u, t: ms(r.lastSeen) ?? now, name: u?.name || (r.uid ? 'مستخدم' : 'زائر'), role: u?.role || null }; }).sort((a, b) => b.t - a.t), [pres, uById, now]);
@@ -263,9 +344,11 @@ export default function Admin() {
       <div className="adm-tabs" role="tablist">{TABS.map(([k, l, ic]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><Icon n={ic} s={16} />{l}{k === 'live' && <b>{online.length}</b>}</button>)}</div>
       {tab === 'overview' && <Overview sessions={sessions} online={online} users={users} phs={phs} orders={orders} now={now} />}
       {tab === 'live' && <Live sessions={sessions} online={online} recent={recent} now={now} />}
-      {tab === 'users' && <Users users={users} sessions={sessions} now={now} onlineIds={onlineIds} />}
+      {tab === 'users' && <Users users={users} setUsers={setUsers} sessions={sessions} now={now} onlineIds={onlineIds} meId={me?.uid} />}
       {tab === 'pharmacies' && <Pharmacies phs={phs} setPhs={setPhs} users={users} />}
+      {tab === 'products' && <ProductsAdmin phs={phs} />}
       {tab === 'orders' && <Orders orders={orders} now={now} />}
+      {tab === 'rx' && <RxAdmin now={now} />}
       {tab === 'system' && <System sessions={sessions} now={now} />}
     </div>
   );

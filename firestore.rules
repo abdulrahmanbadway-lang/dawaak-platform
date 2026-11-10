@@ -2,37 +2,54 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signed() { return request.auth != null; }
+    function touches(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasAny(keys); }
     function onlyKeys(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
     function destOk(d) { return d is map && d.keys().hasOnly(['lat', 'lng']) && d.lat is number && d.lng is number && d.lat >= -90 && d.lat <= 90 && d.lng >= -180 && d.lng <= 180; }
-    function isPatient() { return signed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient'; }
+    // الأدمن: بيتحدد بس من Firebase Console (users/{uid}.role = 'admin'). التسجيل والتعديل من الموقع بيرفضوا الدور ده.
+    function isAdmin() { return signed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
+    // الحساب المحظور (users/{uid}.blocked == true) بيفقد كل صلاحيات الكتابة وقراءة الطلبات والروشتات. بيتحدد من لوحة الأدمن بس.
+    function active() { return signed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('blocked', false) != true; }
+    function isPatient() { return active() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient'; }
 
     match /users/{uid} {
-      allow read: if signed() && request.auth.uid == uid;
+      allow read: if (signed() && request.auth.uid == uid) || isAdmin();
       allow create: if signed() && request.auth.uid == uid && request.resource.data.role in ['patient', 'pharmacy', 'courier']
         && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'createdAt']);
-      allow update: if signed() && request.auth.uid == uid && request.resource.data.role == resource.data.role;
+      allow update: if signed() && request.auth.uid == uid && request.resource.data.role == resource.data.role
+        && resource.data.get('blocked', false) != true && !touches(['blocked', 'blockedAt']);
+      // الأدمن: حظر / فك حظر حساب (مش أدمن تاني) وبس
+      allow update: if isAdmin() && onlyKeys(['blocked', 'blockedAt']) && request.resource.data.blocked is bool && resource.data.role != 'admin';
     }
 
     match /pharmacies/{pid} {
       allow read: if true;
-      allow create: if signed() && request.auth.uid == pid
+      allow create: if active() && request.auth.uid == pid
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'pharmacy'
         && request.resource.data.verified == false;
       // الصيدلية متقدرش تغيّر التوثيق ولا الحالة ولا رقم الترخيص ولا اسم المسؤول
-      allow update: if signed() && request.auth.uid == pid
+      allow update: if active() && request.auth.uid == pid
         && request.resource.data.verified == resource.data.verified
         && request.resource.data.status == resource.data.status
         && request.resource.data.license == resource.data.license
         && request.resource.data.ownerName == resource.data.ownerName;
+      // الأدمن: يوثّق أو يوقف صيدلية، ومش بيغيّر أي حاجة تانية
+      allow update: if isAdmin() && onlyKeys(['verified', 'status'])
+        && request.resource.data.verified is bool && request.resource.data.status in ['active', 'suspended'];
     }
 
     match /products/{id} {
+      // الصورة: JPEG مضغوطة داخل المستند (حد أقصى 200 ألف حرف) أو رابط https
+      function imgUrlOk() {
+        let u = request.resource.data.get('imageUrl', '');
+        return u is string && u.size() <= 200000 && (u == '' || u.matches('data:image/jpeg;base64,.*') || u.matches('https://.*'));
+      }
       allow read: if true;
-      allow create: if signed() && request.resource.data.pharmacyId == request.auth.uid
-        && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid));
-      allow update: if signed() && resource.data.pharmacyId == request.auth.uid
-        && request.resource.data.pharmacyId == resource.data.pharmacyId;
-      allow delete: if signed() && resource.data.pharmacyId == request.auth.uid;
+      allow create: if active() && request.resource.data.pharmacyId == request.auth.uid
+        && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid)) && imgUrlOk();
+      allow update: if active() && resource.data.pharmacyId == request.auth.uid
+        && request.resource.data.pharmacyId == resource.data.pharmacyId && imgUrlOk();
+      // صاحب الصيدلية يحذف منتجه، والأدمن يحذف أي منتج
+      allow delete: if (active() && resource.data.pharmacyId == request.auth.uid) || isAdmin();
     }
 
     // ───────── الروشتات ─────────
@@ -55,7 +72,7 @@ service cloud.firestore {
           && (!('note' in qt) || (qt.note is string && qt.note.size() <= 500));
       }
 
-      allow read: if signed() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid);
+      allow read: if active() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid) || isAdmin();
 
       allow create: if isPatient()
         && request.resource.data.keys().hasOnly(['patientId', 'patientName', 'pharmacyId', 'pharmacyName', 'phone', 'address', 'note', 'images', 'status', 'createdAt', 'updatedAt', 'dest'])
@@ -72,7 +89,7 @@ service cloud.firestore {
         && imgsOk()
         && (!('dest' in request.resource.data) || destOk(request.resource.data.dest));
 
-      allow update: if signed() && (
+      allow update: if active() && (
         // الصيدلي: يرد بعرض سعر أو يطلب توضيح أو يعتذر
         (resource.data.pharmacyId == request.auth.uid
           && resource.data.status in ['pending', 'need_info', 'quoted']
@@ -95,8 +112,8 @@ service cloud.firestore {
 
     match /prescriptions/{rid}/messages/{mid} {
       function rx() { return get(/databases/$(database)/documents/prescriptions/$(rid)).data; }
-      allow read: if signed() && (rx().patientId == request.auth.uid || rx().pharmacyId == request.auth.uid);
-      allow create: if signed()
+      allow read: if active() && (rx().patientId == request.auth.uid || rx().pharmacyId == request.auth.uid);
+      allow create: if active()
         && (rx().patientId == request.auth.uid || rx().pharmacyId == request.auth.uid)
         && rx().status in ['pending', 'need_info', 'quoted']
         && request.resource.data.keys().hasOnly(['senderId', 'role', 'text', 'createdAt'])
@@ -110,8 +127,8 @@ service cloud.firestore {
     // ───────── المناديب والتتبع ─────────
     // المندوب حساب (role=courier) والصيدلية هي اللي بتربطه بيها. من غير مستند هنا المندوب مش بيشوف ولا يوصّل أي طلب.
     match /couriers/{cid} {
-      allow read: if signed() && (resource.data.pharmacyId == request.auth.uid || cid == request.auth.uid);
-      allow create: if signed() && request.resource.data.pharmacyId == request.auth.uid
+      allow read: if active() && (resource.data.pharmacyId == request.auth.uid || cid == request.auth.uid);
+      allow create: if active() && request.resource.data.pharmacyId == request.auth.uid
         && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(cid)).data.role == 'courier'
         && request.resource.data.keys().hasOnly(['pharmacyId', 'name', 'phone', 'active', 'createdAt'])
@@ -120,14 +137,14 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 60
         && request.resource.data.phone is string && request.resource.data.phone.size() >= 8 && request.resource.data.phone.size() <= 20;
-      allow update: if signed() && resource.data.pharmacyId == request.auth.uid && onlyKeys(['active']);
+      allow update: if active() && resource.data.pharmacyId == request.auth.uid && onlyKeys(['active']);
     }
 
     // موقع المندوب اللحظي: بيكتبه المندوب المعيّن على الطلب وهو "out" بس، ويقراه المريض والصيدلية والمندوب
     match /tracking/{oid} {
       function ord() { return get(/databases/$(database)/documents/orders/$(oid)).data; }
-      allow read: if signed() && (ord().patientId == request.auth.uid || ord().pharmacyId == request.auth.uid || ord().get('courierId', null) == request.auth.uid);
-      allow create, update: if signed() && ord().get('courierId', null) == request.auth.uid && ord().status == 'out'
+      allow read: if active() && (ord().patientId == request.auth.uid || ord().pharmacyId == request.auth.uid || ord().get('courierId', null) == request.auth.uid) || isAdmin();
+      allow create, update: if active() && ord().get('courierId', null) == request.auth.uid && ord().status == 'out'
         && request.resource.data.keys().hasOnly(['courierId', 'lat', 'lng', 'acc', 'speed', 'heading', 'updatedAt'])
         && request.resource.data.keys().hasAll(['courierId', 'lat', 'lng', 'updatedAt'])
         && request.resource.data.courierId == request.auth.uid
@@ -138,6 +155,28 @@ service cloud.firestore {
         && (!('heading' in request.resource.data) || request.resource.data.heading is number)
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
+    }
+
+    // ───────── المتواجدون الآن (لوحة الأدمن) ─────────
+    // مستند لكل مستخدم مسجّل (id = uid) ولكل زائر (id = v_xxxx). الكتابة بتتحقق من الشكل والحجم، والقراءة والحذف للأدمن بس.
+    // المسجّل مش بيقدر يكتب إلا مستنده هو؛ الاسم والدور بيتجابوا من users مش من هنا عشان ما يتزوروش.
+    match /presence/{id} {
+      function pOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['sid', 'uid', 'path', 'dev', 'mobile', 'ip', 'cc', 'since', 'lastSeen'])
+          && d.keys().hasAll(['uid', 'path', 'lastSeen'])
+          && d.lastSeen == request.time
+          && d.path is string && d.path.size() <= 80
+          && (!('dev' in d) || (d.dev is string && d.dev.size() <= 60))
+          && (!('mobile' in d) || d.mobile is bool)
+          && (!('ip' in d) || (d.ip is string && d.ip.size() <= 45))
+          && (!('cc' in d) || (d.cc is string && d.cc.size() <= 3))
+          && (!('since' in d) || d.since is number)
+          && (!('sid' in d) || (d.sid is string && d.sid.size() <= 30))
+          && ((d.uid == null && id.matches('v_[a-z0-9]{6,24}')) || (signed() && d.uid == request.auth.uid && id == request.auth.uid));
+      }
+      allow create, update: if pOk();
+      allow read, delete: if isAdmin();
     }
 
     // ───────── الطلبات ─────────
@@ -166,10 +205,10 @@ service cloud.firestore {
         && (!('prescriptionId' in request.resource.data) || rxLinked());
 
       // (ترتيب الشروط مهم: المندوب آخر واحد عشان مستندات الطلبات القديمة اللي من غير courierId ما تعملش خطأ)
-      allow read: if signed() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid || resource.data.courierId == request.auth.uid);
+      allow read: if active() && (resource.data.patientId == request.auth.uid || resource.data.pharmacyId == request.auth.uid || resource.data.courierId == request.auth.uid || isAdmin());
 
       // انتقالات الحالة المسموحة بس
-      allow update: if signed() && (
+      allow update: if active() && (
         (resource.data.pharmacyId == request.auth.uid && (
           (onlyKeys(['status', 'updatedAt']) && (
             (resource.data.status == 'new' && request.resource.data.status in ['preparing', 'cancelled'])

@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { uploadImage } from '../lib/img.js';
 import { norm } from '../lib/text.js';
 import { FORMS } from '../lib/gov.js';
 import { Field, Badge, toast } from '../ui.jsx';
+import { Icon } from '../icons.jsx';
+import '../shop.css';
 
 const EMPTY = { name: '', ingredient: '', dose: '', form: '', price: '', stock: '', rx: false, description: '', warnings: '' };
 
@@ -16,6 +18,7 @@ export default function Products({ uid }) {
   };
   useEffect(() => { load().catch((e) => toast('تعذر التحميل: ' + e.message)); }, [uid]);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
+  const prev = useMemo(() => (file ? URL.createObjectURL(file) : f?.imageUrl || ''), [file, f?.imageUrl]);
 
   const save = async (e) => {
     e.preventDefault();
@@ -47,8 +50,16 @@ export default function Products({ uid }) {
       <Field label="يحتاج روشتة طبية" name="rx" type="checkbox" v={f.rx} on={set('rx')} />
       <Field label="طريقة الاستخدام والتفاصيل" name="description" type="textarea" v={f.description} on={set('description')} />
       <Field label="تحذيرات وتداخلات" name="warnings" type="textarea" v={f.warnings} on={set('warnings')} />
-      <div className="fd"><label>صورة المنتج</label><input id="img" type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0] || null)} />
-        {(file || f.imageUrl) && <img className="pv" src={file ? URL.createObjectURL(file) : f.imageUrl} alt="" />}</div>
+      <div className="fd"><label>صورة المنتج</label>
+        <div className="imgp">
+          <div className="imgpv">{prev ? <img src={prev} alt="" /> : <Icon n="pill" s={34} />}</div>
+          <div className="row g wrap">
+            <label className="btn o sm"><Icon n="camera" s={16} />صوّر العبوة<input hidden type="file" accept="image/*" capture="environment" onChange={(e) => setFile(e.target.files[0] || null)} /></label>
+            <label className="btn o sm">من الجهاز<input hidden id="img" type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0] || null)} /></label>
+            {prev && <button type="button" className="btn o sm" onClick={() => { setFile(null); setF((s) => ({ ...s, imageUrl: '' })); }}>حذف الصورة</button>}
+          </div>
+        </div>
+        <small>صورة حقيقية وواضحة للعبوة من قدّام. بتتضغط تلقائياً.</small></div>
       <div className="row g"><button className="btn g" style={{ flex: 1 }} disabled={busy}>{busy ? '…' : 'حفظ'}</button><button type="button" className="btn o" onClick={() => { setF(null); setFile(null); }}>إلغاء</button></div>
     </form>
   );
@@ -59,7 +70,7 @@ export default function Products({ uid }) {
       {rows && !rows.length && <div className="card center"><p className="mu">لسه مضفتش منتجات. ابدأ بإضافة أول دوا.</p></div>}
       {shown.map((p) => (
         <div className="card prod" key={p.id}>
-          {p.imageUrl ? <img src={p.imageUrl} alt="" /> : <div className="noimg">💊</div>}
+          {p.imageUrl ? <img src={p.imageUrl} alt="" /> : <div className="noimg"><Icon n="pill" s={30} /></div>}
           <div className="pi"><b>{p.name}</b> {p.rx && <Badge c="am">روشتة</Badge>}<div className="mu sm2">{[p.dose, p.form, p.ingredient].filter(Boolean).join(' · ')}</div>
             <div><b className="dist">{p.price} ج.م</b> · <Badge c={p.stock > 0 ? (p.stock < 5 ? 'am' : 'ok') : 'rd'}>{p.stock > 0 ? 'المتاح: ' + p.stock : 'نفد'}</Badge></div></div>
           <div className="pr"><div className="qty"><button onClick={() => bump(p, -1)}>−</button><span>{p.stock}</span><button onClick={() => bump(p, 1)}>＋</button></div>

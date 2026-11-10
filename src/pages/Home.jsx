@@ -17,7 +17,7 @@ export default function Home() {
   useEffect(() => { loadHome().then(setH).catch(() => setH({ pharmacies: [], products: [], stats: null })); }, []);
   const prods = h?.products || [], phs = h?.pharmacies || [];
   const fp = prods[0], fph = phs.find((x) => x.open) || phs[0];
-  const chips = (prods.length ? prods.slice(0, 5).map((p) => p.name) : ['بنادول', 'فيتامين سي', 'بروفين']);
+  const chips = prods.slice(0, 5).map((p) => p.name); // أسماء حقيقية من المنتجات المتاحة فعلاً
   return (
     <div className="home">
       <section className="hero2">
@@ -30,7 +30,7 @@ export default function Home() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="اسم الدوا أو المادة الفعالة… مثلاً بنادول" />
             <button className="btn">ابحث</button>
           </form>
-          <div className="qchips"><span className="mu sm2">الأكثر بحثاً:</span>{chips.map((c) => <button key={c} onClick={() => goSearch(c)}>{c}</button>)}</div>
+          {chips.length > 0 && <div className="qchips"><span className="mu sm2">متاح الآن:</span>{chips.map((c) => <button key={c} onClick={() => goSearch(c)}>{c}</button>)}</div>}
           {h?.stats && <div className="st">
             <div><b>{h.stats.pharmacies}</b><span>صيدلية على المنصة</span></div>
             <div><b>{h.stats.products}</b><span>منتج ومستلزم</span></div>
@@ -40,9 +40,9 @@ export default function Home() {
         <div className="vis">
           <div className="arch"></div>
           <div className="lgo"><img src="/assets/mark.png" alt="" /></div>
-          <div className="fc f1"><span className="mu">{fph ? fph.governorate : 'أقرب صيدلية'}</span><b>{fph ? fph.name : 'صيدلية قريبة منك'}</b><span className="bd ok">{fph?.open === false ? 'مغلقة حالياً' : 'مفتوحة الآن'}</span></div>
-          <div className="fc f2"><span className="mu">{fp ? 'متاح الآن' : 'ابحث عن دواك'}</span><b>{fp ? fp.name : 'اسم الدوا'}</b><span className="ok">{fp ? (fp.min === fp.max ? fp.min : 'من ' + fp.min) + ' ج.م' : 'السعر والتوافر'}</span></div>
-          <div className="fc f3"><b className="row g"><Icon n="truck" s={18} /> تتبّع طلبك</b><div className="msteps"><i className="on"></i><i className="on"></i><i></i><i></i></div><span className="mu">قيد التحضير</span></div>
+          {fph && <div className="fc f1"><span className="mu">{fph.governorate}</span><b>{fph.name}</b><span className={'bd ' + (fph.open === false ? 'rd' : 'ok')}>{fph.open === false ? 'مغلقة حالياً' : 'مفتوحة الآن'}</span></div>}
+          {fp && <div className="fc f2"><span className="mu">متاح الآن</span><b>{fp.name}</b><span className="ok">{(fp.min === fp.max ? fp.min : 'من ' + fp.min) + ' ج.م'}</span></div>}
+          <div className="fc f3"><b className="row g"><Icon n="truck" s={18} /> تتبّع طلبك لحظة بلحظة</b><span className="mu">من التحضير لحد وصول المندوب</span></div>
         </div>
       </section>
 

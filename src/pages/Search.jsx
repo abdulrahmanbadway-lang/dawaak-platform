@@ -52,6 +52,8 @@ export default function Search({ q }) {
     catch { toast('اسمح بالوصول للموقع أو اختار المحافظة'); }
   };
 
+  // نفس المنتج عند صيدلية تانية: نستخدم صورة حقيقية موجودة له لو الصيدلية دي ما رفعتش صورة
+  const alt = useMemo(() => { const m = {}; (rows || []).forEach((p) => { if (p.imageUrl && !m[p.nameLower]) m[p.nameLower] = p.imageUrl; }); return m; }, [rows]);
   const groups = useMemo(() => {
     if (!rows) return null;
     const g = {};
@@ -126,7 +128,7 @@ export default function Search({ q }) {
           </div>
           {items.map((p) => (
             <div className="prod" key={p.id}>
-              {p.imageUrl ? <img src={p.imageUrl} alt="" /> : <div className="noimg">💊</div>}
+              {p.imageUrl || alt[p.nameLower] ? <img src={p.imageUrl || alt[p.nameLower]} alt={p.name} loading="lazy" /> : <div className="noimg"><Icon n="pill" s={30} /></div>}
               <div className="pi">
                 <b>{p.name}</b> {p.rx && <Badge c="am">يحتاج روشتة</Badge>}
                 <div className="mu sm2">{[p.dose, p.form, p.ingredient].filter(Boolean).join(' · ')}</div>

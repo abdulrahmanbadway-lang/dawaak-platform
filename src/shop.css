@@ -1,0 +1,9 @@
+/* صور المنتجات والبدائل */
+.imgp{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.imgpv{width:116px;height:116px;border-radius:18px;background:var(--mt);border:1px dashed var(--ln);display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--mu);flex:none}
+.imgpv img{width:100%;height:100%;object-fit:contain;background:#fff}
+.pimg-ph{display:flex;align-items:center;justify-content:center;color:var(--mu);opacity:.7}
+.pimg .ic-svg,.noimg .ic-svg,.phi .ic-svg,.imgpv .ic-svg{position:static;inset:auto}
+.noimg{color:var(--mu)}
+.phi{color:var(--bl)}
+.btn .ic-svg{position:static;inset:auto}
