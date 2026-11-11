@@ -154,6 +154,13 @@ function Users({ users, setUsers, sessions, now, onlineIds, meId }) {
       setUsers((l) => l.map((x) => (x.id === u.id ? { ...x, blocked: on } : x))); toast(on ? 'تم الحظر ✓' : 'تم فك الحظر ✓');
     } catch (e) { toast('تعذر التنفيذ: ' + (e.code || e.message)); }
   };
+  const setAdmin = async (u, on) => {
+    if (!confirm(on ? `ترقية ${u.name} (${u.email}) لأدمن؟\nهيبقى له كل صلاحياتك: يشوف كل البيانات، يحظر ويحذف ويرقّي أدمن تاني.` : `سحب صلاحية الأدمن من ${u.name}؟ هيرجع حساب مريض.`)) return;
+    try {
+      await updateDoc(doc(db, 'users', u.id), { role: on ? 'admin' : 'patient' });
+      setUsers((l) => l.map((x) => (x.id === u.id ? { ...x, role: on ? 'admin' : 'patient' } : x))); toast(on ? 'تمت الترقية لأدمن ✓' : 'تم سحب الصلاحية ✓');
+    } catch (e) { toast('تعذر التنفيذ: ' + (e.code || e.message)); }
+  };
   const reset = async (u) => {
     if (!confirm(`نبعت رابط تعيين كلمة سر جديدة على ${u.email}؟`)) return;
     try { await sendPasswordResetEmail(auth, u.email); toast('اتبعت الرابط على ' + u.email); }
@@ -172,9 +179,12 @@ function Users({ users, setUsers, sessions, now, onlineIds, meId }) {
             <tr key={u.id} className={u.blocked === true ? 'adm-blk' : ''}><td><Dot on={onlineIds.has(u.id)} /></td><td><b>{u.name}</b> {u.blocked === true && <Badge c="rd">محظور</Badge>}</td><td dir="ltr" className="mu">{u.email}</td><td><Badge c={u.role === 'admin' ? 'am' : ''}>{ROLE[u.role] || u.role}</Badge></td>
               <td className="mu">{dt(ms(u.createdAt))}</td><td>{s ? ago(s.t, now) : <span className="mu">لسه ما دخلش بعد التحديث</span>}</td><td dir="ltr">{s?.ip || '—'}{s?.cc ? ' · ' + s.cc : ''}</td><td className="mu">{s?.dev || '—'}</td>
               <td><div className="row g"><button className="btn o sm" onClick={() => reset(u)} title="يبعت رابط تعيين كلمة سر على بريده">رابط كلمة السر</button>
-                <button className={'btn sm' + (u.blocked === true ? ' g' : ' o')} disabled={locked} title={locked ? 'مينفعش حظر الأدمن أو حسابك' : ''} onClick={() => block(u)}>{u.blocked === true ? 'فك الحظر' : 'حظر'}</button></div></td></tr>); })}</tbody></table>}</div>
+                <button className={'btn sm' + (u.blocked === true ? ' g' : ' o')} disabled={locked} title={locked ? 'مينفعش حظر الأدمن أو حسابك' : ''} onClick={() => block(u)}>{u.blocked === true ? 'فك الحظر' : 'حظر'}</button>
+                {u.role === 'patient' && u.blocked !== true && <button className="btn sm" title="يدّيه كل صلاحيات الأدمن" onClick={() => setAdmin(u, true)}>ترقية لأدمن</button>}
+                {u.role === 'admin' && u.id !== meId && <button className="btn o sm" title="يرجّعه حساب مريض" onClick={() => setAdmin(u, false)}>سحب الأدمن</button>}</div></td></tr>); })}</tbody></table>}</div>
       <p className="mu sm2">كلمات المرور مش بتتخزّن في أي مكان مقروء (Firebase بيشفّرها ومحدش يقدر يشوفها، ولا حتى الأدمن). لو مستخدم نسي كلمته اضغط "رابط كلمة السر" وهيوصله إيميل لتعيين كلمة جديدة.
-        الحظر بيمنع الحساب فعليًا من الكتابة وقراءة الطلبات والروشتات (بقواعد Firestore)، لكن مقدرش أمنعه من تسجيل حساب جديد بإيميل تاني.</p>
+        الحظر بيمنع الحساب فعليًا من الكتابة وقراءة الطلبات والروشتات (بقواعد Firestore)، لكن مقدرش أمنعه من تسجيل حساب جديد بإيميل تاني.
+        لإضافة أدمن: خلّي الشخص يسجّل حساب مريض عادي من الموقع، وبعدين اضغط "ترقية لأدمن" قدّام اسمه. الترقية بتتم من حسابات المرضى بس، ومينفعش تسحب الأدمن من نفسك.</p>
     </>
   );
 }

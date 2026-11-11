@@ -5,7 +5,7 @@ service cloud.firestore {
     function touches(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasAny(keys); }
     function onlyKeys(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
     function destOk(d) { return d is map && d.keys().hasOnly(['lat', 'lng']) && d.lat is number && d.lng is number && d.lat >= -90 && d.lat <= 90 && d.lng >= -180 && d.lng <= 180; }
-    // الأدمن: بيتحدد بس من Firebase Console (users/{uid}.role = 'admin'). التسجيل والتعديل من الموقع بيرفضوا الدور ده.
+    // الأدمن: أول أدمن بيتحدد من Firebase Console (users/{uid}.role = 'admin')، وبعدها أي أدمن يرقّي حساب مريض من لوحة التحكم. التسجيل والتعديل الذاتي بيرفضوا الدور ده.
     function isAdmin() { return signed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
     // الحساب المحظور (users/{uid}.blocked == true) بيفقد كل صلاحيات الكتابة وقراءة الطلبات والروشتات. بيتحدد من لوحة الأدمن بس.
     function active() { return signed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('blocked', false) != true; }
@@ -19,6 +19,10 @@ service cloud.firestore {
         && resource.data.get('blocked', false) != true && !touches(['blocked', 'blockedAt']);
       // الأدمن: حظر / فك حظر حساب (مش أدمن تاني) وبس
       allow update: if isAdmin() && onlyKeys(['blocked', 'blockedAt']) && request.resource.data.blocked is bool && resource.data.role != 'admin';
+      // الأدمن: يرقّي حساب مريض (مش محظور) لأدمن، أو يرجّع أدمن آخر لمريض. مينفعش يغيّر دور نفسه.
+      allow update: if isAdmin() && onlyKeys(['role']) && request.auth.uid != uid
+        && ((resource.data.role == 'patient' && request.resource.data.role == 'admin' && resource.data.get('blocked', false) != true)
+         || (resource.data.role == 'admin' && request.resource.data.role == 'patient'));
     }
 
     match /pharmacies/{pid} {
