@@ -3,6 +3,7 @@ import { loadHome } from '../lib/featured.js';
 import { Icon } from '../icons.jsx';
 import { ProdCard, PharmCard, goSearch } from '../components.jsx';
 import { trs } from '../lib/i18n.js';
+import { Banners, CatTiles, Rails } from '../homeparts.jsx';
 
 const FAQ = [
   ['هل دواك بديل للدكتور؟', 'لا. دواك بيساعدك تلاقي الدوا وتطلبه، لكن التشخيص والعلاج عند الطبيب. وفي الطوارئ اتصل بالإسعاف 123.'],
@@ -46,6 +47,10 @@ export default function Home() {
           <div className="fc f3"><b className="row g"><Icon n="truck" s={18} /> {trs("تتبّع طلبك لحظة بلحظة")}</b><span className="mu">{trs("من التحضير لحد وصول المندوب")}</span></div>
         </div>
       </section>
+
+      <Banners list={h?.banners} />
+      {prods.length > 0 && <CatTiles products={prods} />}
+      {prods.length > 0 && <Rails products={prods} />}
 
       <section className="sec">
         <h2>{trs("إزاي")}{" "}<span className="gr">{trs("دواك")}</span> {trs("بيشتغل؟")}</h2>

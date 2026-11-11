@@ -59,3 +59,20 @@ export async function rxImage(file) {
     throw new Error(trs("الصورة كبيرة جداً. صوّر الروشتة من مسافة أقرب أو بإضاءة أحسن."));
   } finally { URL.revokeObjectURL(url); }
 }
+
+// صورة إعلان: مقصوصة بنسبة 1000×375 ومضغوطة لأقل من 150 ألف حرف (القواعد ترفض أكتر من 200 ألف)
+export async function bannerImage(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('تعذر قراءة الصورة')); i.src = url; });
+    for (const [w, q] of [[1000, 0.8], [900, 0.7], [760, 0.62], [640, 0.55], [520, 0.48]]) {
+      const h = Math.round(w * 0.375), c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const x = c.getContext('2d'), s = Math.max(w / img.width, h / img.height), dw = img.width * s, dh = img.height * s;
+      x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      const d = c.toDataURL('image/jpeg', q);
+      if (d.length <= 150000) return d;
+    }
+    throw new Error('الصورة معقّدة وكبيرة. جرّب صورة أبسط أو بحجم أصغر.');
+  } finally { URL.revokeObjectURL(url); }
+}

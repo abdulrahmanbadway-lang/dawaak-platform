@@ -117,7 +117,7 @@ export default function Search({ q }) {
         <button className="btn o sm" id="geo" onClick={myLoc}><Icon n="pin" s={16} /> {loc ? trs("تم تحديد موقعك") : trs("استخدم موقعي")}</button>
         <select className="fi sel" value={gov} onChange={(e) => setGov(e.target.value)}><option value="">{trs("كل المحافظات")}</option>{GOV.map((g) => <option key={g} value={g}>{trs(g)}</option>)}</select>
       </div>
-      {!rows && feat && feat.length > 0 && <><h2 className="mt">{trs("منتجات متاحة الآن")}</h2><div className="pgrid">{feat.map((p) => <ProdCard key={p.name} p={p} />)}</div></>}
+      {!rows && feat && feat.length > 0 && (() => { const cat = q.get('cat') || '', list = cat ? feat.filter((p) => p.category === cat) : feat; return <><h2 className="mt">{cat ? trs(cat) : trs("منتجات متاحة الآن")}</h2>{cat && <a className="go" href="#/search">{trs("عرض كل الأقسام ◂")}</a>}{list.length ? <div className="pgrid">{list.map((p) => <ProdCard key={p.name} p={p} />)}</div> : <div className="card center"><p className="mu">{trs("لسه مفيش منتجات في القسم ده.")}</p></div>}</>; })()}
       {groups && !groups.length && <div className="card center"><h3>{trs("مفيش نتايج")}</h3><p className="mu">{trs("جرّب اسم تاني أو المادة الفعالة، أو غيّر المحافظة.")}</p></div>}
       {groups?.map(({ ph, items, d, stock }) => (
         <div className="card ph" key={ph.id}>

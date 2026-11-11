@@ -4,12 +4,13 @@ import { db } from '../firebase.js';
 import { uploadImage } from '../lib/img.js';
 import { norm } from '../lib/text.js';
 import { FORMS } from '../lib/gov.js';
+import { CATS } from '../lib/cats.js';
 import { Field, Badge, toast } from '../ui.jsx';
 import { Icon } from '../icons.jsx';
 import '../shop.css';
 import { trs, tdata } from '../lib/i18n.js';
 
-const EMPTY = { name: '', ingredient: '', dose: '', form: '', price: '', stock: '', rx: false, description: '', warnings: '' };
+const EMPTY = { name: '', ingredient: '', dose: '', form: '', category: '', price: '', stock: '', rx: false, description: '', warnings: '' };
 
 export default function Products({ uid }) {
   const [rows, setRows] = useState(null), [f, setF] = useState(null), [file, setFile] = useState(null), [busy, setBusy] = useState(false), [flt, setFlt] = useState('');
@@ -31,7 +32,7 @@ export default function Products({ uid }) {
     try {
       const imageUrl = file ? await uploadImage(file, uid) : f.imageUrl || '';
       const data = { pharmacyId: uid, name: f.name.trim(), nameLower: norm(f.name), ingredient: f.ingredient.trim(), ingredientLower: norm(f.ingredient),
-        dose: f.dose.trim(), form: f.form, price, stock, rx: !!f.rx, description: f.description.trim(), warnings: f.warnings.trim(), imageUrl, updatedAt: serverTimestamp() };
+        dose: f.dose.trim(), form: f.form, category: f.category || '', price, stock, rx: !!f.rx, description: f.description.trim(), warnings: f.warnings.trim(), imageUrl, updatedAt: serverTimestamp() };
       if (f.id) await updateDoc(doc(db, 'products', f.id), data);
       else await addDoc(collection(db, 'products'), { ...data, createdAt: serverTimestamp() });
       toast(trs("تم حفظ المنتج ✓")); setF(null); setFile(null); await load();
@@ -47,6 +48,7 @@ export default function Products({ uid }) {
       <Field label={trs("اسم الدوا / المنتج")} name="name" v={f.name} on={set('name')} />
       <Field label={trs("المادة الفعالة")} name="ingredient" v={f.ingredient} on={set('ingredient')} placeholder={trs("مثلاً Paracetamol")} />
       <div className="row g"><div style={{ flex: 1 }}><Field label={trs("الجرعة / التركيز")} name="dose" v={f.dose} on={set('dose')} placeholder={trs("500 ملجم")} /></div><div style={{ flex: 1 }}><Field label={trs("الشكل")} name="form" type="select" options={FORMS} v={f.form} on={set('form')} /></div></div>
+      <Field label={trs("القسم")} name="category" type="select" options={CATS} v={f.category || ''} on={set('category')} />
       <div className="row g"><div style={{ flex: 1 }}><Field label={trs("السعر (ج.م)")} name="price" type="number" step="0.5" min="0" v={f.price} on={set('price')} /></div><div style={{ flex: 1 }}><Field label={trs("الكمية المتاحة")} name="stock" type="number" min="0" v={f.stock} on={set('stock')} /></div></div>
       <Field label={trs("يحتاج روشتة طبية")} name="rx" type="checkbox" v={f.rx} on={set('rx')} />
       <Field label={trs("طريقة الاستخدام والتفاصيل")} name="description" type="textarea" v={f.description} on={set('description')} />
