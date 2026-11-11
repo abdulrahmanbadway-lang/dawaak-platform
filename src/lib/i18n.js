@@ -41,3 +41,14 @@ export function useLang() {
   useEffect(() => { subs.add(set); set(LANG); return () => { subs.delete(set); }; }, []);
   return l;
 }
+
+// ترجمة قيم بيكتبها أصحاب الصيدليات (الجرعة، مواعيد العمل، الشكل). أسماء الأدوية والصيدليات والعناوين بتفضل زي ما اتكتبت.
+const NB = '(?<![\\u0600-\\u06FF])', NA = '(?![\\u0600-\\u06FF])';
+const UNITS = [['ملجم', 'mg'], ['مجم', 'mg'], ['ميكروجرام', 'mcg'], ['جم', 'g'], ['جرام', 'g'], ['مل', 'ml'], ['وحدة', 'IU'], ['ساعة', 'hours'], ['ساعات', 'hours'], ['ص', 'AM'], ['م', 'PM'], ['يوميا', 'daily'], ['يومياً', 'daily'], ['قرص', 'tablet'], ['أقراص', 'tablets'], ['كبسولة', 'capsule'], ['شريط', 'strip'], ['علبة', 'box']];
+export function tdata(s) {
+  if (LANG !== 'en' || typeof s !== 'string' || !/[؀-ۿ]/.test(s)) return s;
+  if (Object.prototype.hasOwnProperty.call(en, s)) return en[s];
+  let o = s;
+  for (const [a, b] of UNITS) o = o.replace(new RegExp(NB + a + NA, 'g'), b);
+  return o;
+}

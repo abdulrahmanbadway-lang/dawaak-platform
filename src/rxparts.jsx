@@ -3,7 +3,7 @@ import { collection, query, orderBy, onSnapshot, doc, writeBatch, serverTimestam
 import { db } from './firebase.js';
 import { RX_OPEN, ms } from './lib/status.js';
 import { toast } from './ui.jsx';
-import { trs, lcl } from './lib/i18n.js';
+import { trs, lcl, tdata } from './lib/i18n.js';
 
 export const fmtTime = (t) => { const v = ms(t); return v ? new Date(v).toLocaleString(lcl(), { dateStyle: 'medium', timeStyle: 'short' }) : ''; };
 const money = (n) => +(+n).toFixed(2);
@@ -29,7 +29,7 @@ export function QuoteView({ quote }) {
   return (
     <div className="qt">
       <table><thead><tr><th>{trs("الصنف")}</th><th>{trs("الكمية")}</th><th>{trs("السعر")}</th></tr></thead><tbody>
-        {quote.items.map((i, k) => <tr key={k}><td>{i.name}{i.dose && <small className="mu"> ({i.dose})</small>}</td><td>{i.qty}</td><td>{money(i.price * i.qty)} {trs("ج.م")}</td></tr>)}
+        {quote.items.map((i, k) => <tr key={k}><td>{i.name}{i.dose && <small className="mu"> ({tdata(i.dose)})</small>}</td><td>{i.qty}</td><td>{money(i.price * i.qty)} {trs("ج.م")}</td></tr>)}
       </tbody></table>
       <div className="row between wrap"><span className="mu sm2">{quote.note}</span><b className="dist">{trs("الإجمالي")}{" "}{quote.total} {trs("ج.م")}</b></div>
     </div>

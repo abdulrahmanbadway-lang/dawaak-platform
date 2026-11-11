@@ -5,7 +5,7 @@ import { useAuth } from '../auth.jsx';
 import { STEPS, LABEL, ms } from '../lib/status.js';
 import { toast } from '../ui.jsx';
 import { Icon } from '../icons.jsx';
-import { trs, lcl } from '../lib/i18n.js';
+import { trs, lcl, tdata } from '../lib/i18n.js';
 
 const STEP_IC = { new: 'bag', preparing: 'pill', out: 'truck', done: 'check' };
 export function Steps({ status }) {
@@ -34,7 +34,7 @@ export default function PatientOrders() {
       {rows?.map((o) => (
         <div className="card" key={o.id}>
           <div className="row between wrap"><div><h3>{o.pharmacyName} {o.source === 'rx' && <span className="bd am">{trs("من روشتة")}</span>}</h3><p className="mu sm2">{ms(o.createdAt) ? new Date(ms(o.createdAt)).toLocaleString(lcl()) : ''}</p></div><b className="dist">{o.total} {trs("ج.م")}</b></div>
-          <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
+          <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + tdata(i.dose) + ')'} × {i.qty}</li>)}</ul>
           {o.courierName && o.status === 'out' && <p className="sm2">{trs("المندوب:")}{" "}{o.courierName}</p>}
           <Steps status={o.status} />
           <div className="row between wrap"><span className="mu sm2">{trs(LABEL[o.status])} {trs("· الدفع عند الاستلام")}</span>

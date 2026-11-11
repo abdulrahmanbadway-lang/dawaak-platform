@@ -7,7 +7,7 @@ import { FORMS } from '../lib/gov.js';
 import { Field, Badge, toast } from '../ui.jsx';
 import { Icon } from '../icons.jsx';
 import '../shop.css';
-import { trs } from '../lib/i18n.js';
+import { trs, tdata } from '../lib/i18n.js';
 
 const EMPTY = { name: '', ingredient: '', dose: '', form: '', price: '', stock: '', rx: false, description: '', warnings: '' };
 
@@ -72,7 +72,7 @@ export default function Products({ uid }) {
       {shown.map((p) => (
         <div className="card prod" key={p.id}>
           {p.imageUrl ? <img src={p.imageUrl} alt="" /> : <div className="noimg"><Icon n="pill" s={30} /></div>}
-          <div className="pi"><b>{p.name}</b> {p.rx && <Badge c="am">{trs("روشتة")}</Badge>}<div className="mu sm2">{[p.dose, p.form, p.ingredient].filter(Boolean).join(' · ')}</div>
+          <div className="pi"><b>{p.name}</b> {p.rx && <Badge c="am">{trs("روشتة")}</Badge>}<div className="mu sm2">{[tdata(p.dose), tdata(p.form), p.ingredient].filter(Boolean).join(' · ')}</div>
             <div><b className="dist">{p.price} {trs("ج.م")}</b> · <Badge c={p.stock > 0 ? (p.stock < 5 ? 'am' : 'ok') : 'rd'}>{p.stock > 0 ? trs("المتاح: ") + p.stock : trs("نفد")}</Badge></div></div>
           <div className="pr"><div className="qty"><button onClick={() => bump(p, -1)}>−</button><span>{p.stock}</span><button onClick={() => bump(p, 1)}>＋</button></div>
             <div className="row g"><button className="btn o sm" onClick={() => setF({ ...p, price: String(p.price), stock: String(p.stock) })}>{trs("تعديل")}</button><button className="btn o sm" onClick={() => del(p)}>{trs("حذف")}</button></div></div>

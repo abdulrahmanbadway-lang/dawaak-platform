@@ -8,7 +8,7 @@ import { useDriveRoute } from '../lib/route.js';
 import TileMap, { useSmooth } from '../tilemap.jsx';
 import { Icon } from '../icons.jsx';
 import { toast } from '../ui.jsx';
-import { trs, lcl } from '../lib/i18n.js';
+import { trs, lcl, tdata } from '../lib/i18n.js';
 
 const navUrl = (o) => o.dest
   ? `https://www.google.com/maps/dir/?api=1&destination=${o.dest.lat},${o.dest.lng}&travelmode=driving`
@@ -90,7 +90,7 @@ export default function Courier() {
           <div className="kv"><span className="mu"><Icon n="pin" s={16} /></span><b>{o.address}</b></div>
           <div className="kv"><span className="mu"><Icon n="store" s={16} /></span><b>{o.pharmacyName}</b></div>
           {o.note && <div className="kv"><span className="mu"><Icon n="chat" s={16} /></span><b>{o.note}</b></div>}
-          <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
+          <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + tdata(i.dose) + ')'} × {i.qty}</li>)}</ul>
           <p className="sm2 mu">{trs("الدفع عند الاستلام")}{" "}{!o.dest && <span className="err">{trs("· العميل ما حدّدش موقعه على الخريطة")}</span>}</p>
           {o.dest && <><button className="btn o sm" onClick={() => setOpen(open === o.id ? null : o.id)}><Icon n="pin" s={16} /> {open === o.id ? trs("إخفاء الخريطة") : trs("عرض الطريق")}</button>{open === o.id && <Nav o={o} me={me} />}</>}
           <div className="dl-act">

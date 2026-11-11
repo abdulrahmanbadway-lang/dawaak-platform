@@ -10,7 +10,7 @@ import { norm } from '../lib/text.js';
 import { toast, Badge, Field } from '../ui.jsx';
 import { loadHome } from '../lib/featured.js';
 import { ProdCard } from '../components.jsx';
-import { trs } from '../lib/i18n.js';
+import { trs, tdata } from '../lib/i18n.js';
 
 async function findProducts(text) {
   const t = norm(text), end = t + '\uf8ff', out = new Map();
@@ -123,7 +123,7 @@ export default function Search({ q }) {
         <div className="card ph" key={ph.id}>
           <div className="row between wrap">
             <div><h3>{ph.name} {ph.verified ? <Badge c="ok">{trs("موثّقة")}</Badge> : <Badge c="am">{trs("قيد التوثيق")}</Badge>}</h3>
-              <p className="mu sm2">{trs(ph.governorate)} · {ph.address}{ph.hours ? ' · ' + ph.hours : ''}</p></div>
+              <p className="mu sm2">{trs(ph.governorate)} · <bdi>{ph.address}</bdi>{ph.hours ? ' · ' + tdata(ph.hours) : ''}</p></div>
             <div className="tr">{d != null && <b className="dist">{fmtKm(d)}</b>}
               <div><Badge c={ph.open ? 'ok' : 'rd'}>{ph.open ? trs("مفتوحة") : trs("مغلقة")}</Badge> <Badge c={stock ? 'ok' : 'rd'}>{stock ? trs("متاح") : trs("نفد")}</Badge></div></div>
           </div>
@@ -132,7 +132,7 @@ export default function Search({ q }) {
               {p.imageUrl || alt[p.nameLower] ? <img src={p.imageUrl || alt[p.nameLower]} alt={p.name} loading="lazy" /> : <div className="noimg"><Icon n="pill" s={30} /></div>}
               <div className="pi">
                 <b>{p.name}</b> {p.rx && <Badge c="am">{trs("يحتاج روشتة")}</Badge>}
-                <div className="mu sm2">{[p.dose, p.form, p.ingredient].filter(Boolean).join(' · ')}</div>
+                <div className="mu sm2">{[tdata(p.dose), tdata(p.form), p.ingredient].filter(Boolean).join(' · ')}</div>
                 {(p.description || p.warnings) && <details><summary>{trs("التفاصيل")}</summary>
                   {p.description && <p><b>{trs("الاستخدام:")}</b> {p.description}</p>}{p.warnings && <p><b>{trs("تحذيرات:")}</b> {p.warnings}</p>}</details>}
               </div>

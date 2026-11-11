@@ -11,7 +11,7 @@ import PharmacyRx from './PharmacyRx.jsx';
 import Couriers, { useCouriers } from './Couriers.jsx';
 import { useRx } from '../lib/rx.js';
 import { Steps } from './PatientOrders.jsx';
-import { trs } from '../lib/i18n.js';
+import { trs, tdata } from '../lib/i18n.js';
 
 const NEXT = { new: [['preparing', 'قبول وتجهيز', ''], ['cancelled', 'رفض', 'o']], preparing: [['out', 'خرج للتوصيل', '']], out: [['done', 'تم التسليم', 'g']] };
 
@@ -47,7 +47,7 @@ function Orders({ uid, couriers }) {
           <div className="row between wrap"><div><h3>{o.patientName} <Badge c={o.status === 'new' ? 'am' : o.status === 'cancelled' ? 'rd' : 'ok'}>{trs(LABEL[o.status])}</Badge> {o.source === 'rx' && <Badge c="am">{trs("من روشتة")}</Badge>}</h3>
             {o.courierName && <p className="sm2">{trs("المندوب:")}{" "}{o.courierName}{o.status === 'out' && <> · <a className="go" href={'#/track/' + o.id}>{trs("تتبع على الخريطة ◂")}</a></>}</p>}
             <p className="mu sm2" dir="ltr" style={{ textAlign: 'right' }}>{o.phone}</p><p className="mu sm2">{o.address}</p>{o.note && <p className="sm2">{trs("ملاحظة:")}{" "}{o.note}</p>}</div><b className="dist">{o.total} {trs("ج.م")}</b></div>
-          <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
+          <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + tdata(i.dose) + ')'} × {i.qty}</li>)}</ul>
           <Steps status={o.status} />
           <div className="row g wrap">{(NEXT[o.status] || []).map(([st, l, c]) => <button key={st} className={'btn sm ' + c} disabled={busy === o.id} onClick={() => (st === 'out' && couriers.length ? setPick(o) : move(o, st))}>{trs(l)}</button>)}</div>
         </div>

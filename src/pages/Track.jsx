@@ -8,7 +8,7 @@ import { useDriveRoute } from '../lib/route.js';
 import TileMap, { useSmooth } from '../tilemap.jsx';
 import { Icon } from '../icons.jsx';
 import { Steps } from './PatientOrders.jsx';
-import { trs } from '../lib/i18n.js';
+import { trs, tdata } from '../lib/i18n.js';
 
 const HEAD = {
   new: ['تم استلام طلبك', 'بانتظار قبول الصيدلية'],
@@ -94,7 +94,7 @@ export default function Track({ id, role }) {
 
       <section className="card">
         <div className="row between wrap"><h3>{trs("تفاصيل الطلب")}</h3><span className={'bd ' + (o.status === 'cancelled' ? 'rd' : o.status === 'new' ? 'am' : 'ok')}>{trs(LABEL[o.status])}</span></div>
-        <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + i.dose + ')'} × {i.qty}</li>)}</ul>
+        <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + tdata(i.dose) + ')'} × {i.qty}</li>)}</ul>
         <div className="kv"><span className="mu">{trs("الصيدلية")}</span><b>{o.pharmacyName}</b></div>
         <div className="kv"><span className="mu">{trs("العنوان")}</span><b>{o.address}</b></div>
         <div className="kv"><span className="mu">{trs("الدفع")}</span><b>{trs("عند الاستلام")}</b></div>

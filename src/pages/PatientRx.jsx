@@ -11,7 +11,7 @@ import { useRx } from '../lib/rx.js';
 import { RX_LABEL, RX_TONE, RX_OPEN } from '../lib/status.js';
 import { Badge, Field, toast } from '../ui.jsx';
 import { Thumbs, QuoteView, Chat, fmtTime } from '../rxparts.jsx';
-import { trs } from '../lib/i18n.js';
+import { trs, tdata } from '../lib/i18n.js';
 
 function NewRx({ q }) {
   const { user, profile } = useAuth();
@@ -73,7 +73,7 @@ function NewRx({ q }) {
           <label key={p.id} className={'pick' + (pid === p.id ? ' on' : '')}>
             <input type="radio" name="ph" checked={pid === p.id} onChange={() => setPid(p.id)} />
             <div><b>{p.name}</b> {p.verified ? <Badge c="ok">{trs("موثّقة")}</Badge> : <Badge c="am">{trs("قيد التوثيق")}</Badge>}
-              <div className="mu sm2">{trs(p.governorate)} · {p.address}{p.hours ? ' · ' + p.hours : ''}</div></div>
+              <div className="mu sm2">{trs(p.governorate)} · <bdi>{p.address}</bdi>{p.hours ? ' · ' + tdata(p.hours) : ''}</div></div>
             <div className="tr">{p.d != null && <b className="dist">{fmtKm(p.d)}</b>}<div><Badge c={p.open ? 'ok' : 'rd'}>{p.open ? trs("مفتوحة") : trs("مغلقة")}</Badge></div></div>
           </label>
         ))}</div>
