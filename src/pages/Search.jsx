@@ -10,6 +10,7 @@ import { norm } from '../lib/text.js';
 import { toast, Badge, Field } from '../ui.jsx';
 import { loadHome } from '../lib/featured.js';
 import { ProdCard } from '../components.jsx';
+import { trs } from '../lib/i18n.js';
 
 async function findProducts(text) {
   const t = norm(text), end = t + '\uf8ff', out = new Map();
@@ -32,7 +33,7 @@ export default function Search({ q }) {
 
   const run = async (e) => {
     e?.preventDefault();
-    if (norm(text).length < 2) return toast('اكتب حرفين على الأقل');
+    if (norm(text).length < 2) return toast(trs("اكتب حرفين على الأقل"));
     setBusy(true);
     try {
       const ps = await findProducts(text), m = { ...phs };
@@ -43,13 +44,13 @@ export default function Search({ q }) {
       }));
       setPhs(m);
       setRows(ps.filter((p) => m[p.pharmacyId] && m[p.pharmacyId].status === 'active'));
-    } catch (x) { toast('تعذر البحث: ' + x.message); }
+    } catch (x) { toast(trs("تعذر البحث: ") + x.message); }
     setBusy(false);
   };
   useEffect(() => { if (text) run(); }, []);
   const myLoc = async () => {
-    try { setLoc(await getPos()); toast('تم تحديد موقعك ✓'); }
-    catch { toast('اسمح بالوصول للموقع أو اختار المحافظة'); }
+    try { setLoc(await getPos()); toast(trs("تم تحديد موقعك ✓")); }
+    catch { toast(trs("اسمح بالوصول للموقع أو اختار المحافظة")); }
   };
 
   // نفس المنتج عند صيدلية تانية: نستخدم صورة حقيقية موجودة له لو الصيدلية دي ما رفعتش صورة
@@ -68,12 +69,12 @@ export default function Search({ q }) {
 
   const add = (p) => {
     if (cart.pid && cart.pid !== p.pharmacyId && Object.keys(cart.items).length) {
-      if (!confirm('الطلب بيكون من صيدلية واحدة بس. تفريغ السلة الحالية وإضافة المنتج ده؟')) return;
+      if (!confirm(trs("الطلب بيكون من صيدلية واحدة بس. تفريغ السلة الحالية وإضافة المنتج ده؟"))) return;
       setCart({ pid: p.pharmacyId, items: { [p.id]: { p, qty: 1 } } });
       return;
     }
     const cur = cart.items[p.id]?.qty || 0;
-    if (cur >= p.stock) return toast('الكمية المتاحة ' + p.stock + ' فقط');
+    if (cur >= p.stock) return toast(trs("الكمية المتاحة ") + p.stock + trs(" فقط"));
     setCart({ pid: p.pharmacyId, items: { ...cart.items, [p.id]: { p, qty: cur + 1 } } });
   };
   const rem = (id) => {
@@ -85,13 +86,13 @@ export default function Search({ q }) {
   const total = list.reduce((s, x) => s + x.p.price * x.qty, 0);
 
   const startCheckout = () => {
-    if (!user) { toast('سجّل دخولك الأول عشان تكمل الطلب'); return go('/login'); }
-    if (profile?.role !== 'patient') return toast('الطلب متاح لحسابات المرضى فقط');
+    if (!user) { toast(trs("سجّل دخولك الأول عشان تكمل الطلب")); return go('/login'); }
+    if (profile?.role !== 'patient') return toast(trs("الطلب متاح لحسابات المرضى فقط"));
     setCo({ phone: '', address: '', note: '', dest: null });
   };
   const send = async (e) => {
     e.preventDefault();
-    if (co.phone.trim().length < 8 || co.address.trim().length < 5) return toast('اكتب رقم الموبايل والعنوان بالتفصيل');
+    if (co.phone.trim().length < 8 || co.address.trim().length < 5) return toast(trs("اكتب رقم الموبايل والعنوان بالتفصيل"));
     try {
       await addDoc(collection(db, 'orders'), {
         patientId: user.uid, patientName: profile.name, phone: co.phone.trim(), address: co.address.trim(), note: co.note.trim(),
@@ -100,58 +101,58 @@ export default function Search({ q }) {
         ...(co.dest ? { dest: co.dest } : {}),
         total, status: 'new', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       });
-      toast('تم إرسال طلبك للصيدلية ✓'); setCart({ pid: null, items: {} }); setCo(null); go('/orders');
-    } catch (x) { toast('تعذر إرسال الطلب: ' + x.message); }
+      toast(trs("تم إرسال طلبك للصيدلية ✓")); setCart({ pid: null, items: {} }); setCo(null); go('/orders');
+    } catch (x) { toast(trs("تعذر إرسال الطلب: ") + x.message); }
   };
 
   return (
     <div>
-      <h1>ابحث عن دوا</h1>
-      <a className="card rxban" href="#/rx/new"><span className="hn"><Icon n="rx" s={24} /></span><div><b>عندك روشتة؟</b><p className="mu sm2">ارفع صورتها لأي صيدلية والصيدلي هيراجعها ويرد عليك بالأصناف والأسعار.</p></div><span className="go">ارفع روشتة ◂</span></a>
+      <h1>{trs("ابحث عن دوا")}</h1>
+      <a className="card rxban" href="#/rx/new"><span className="hn"><Icon n="rx" s={24} /></span><div><b>{trs("عندك روشتة؟")}</b><p className="mu sm2">{trs("ارفع صورتها لأي صيدلية والصيدلي هيراجعها ويرد عليك بالأصناف والأسعار.")}</p></div><span className="go">{trs("ارفع روشتة ◂")}</span></a>
       <form className="sb" onSubmit={run}>
-        <input name="q" value={text} onChange={(e) => setText(e.target.value)} placeholder="اسم الدوا أو المادة الفعالة…" />
-        <button className="btn" disabled={busy}>{busy ? '…' : 'ابحث'}</button>
+        <input name="q" value={text} onChange={(e) => setText(e.target.value)} placeholder={trs("اسم الدوا أو المادة الفعالة…")} />
+        <button className="btn" disabled={busy}>{busy ? '…' : trs("ابحث")}</button>
       </form>
       <div className="row g wrap bar2">
-        <button className="btn o sm" id="geo" onClick={myLoc}><Icon n="pin" s={16} /> {loc ? 'تم تحديد موقعك' : 'استخدم موقعي'}</button>
-        <select className="fi sel" value={gov} onChange={(e) => setGov(e.target.value)}><option value="">كل المحافظات</option>{GOV.map((g) => <option key={g}>{g}</option>)}</select>
+        <button className="btn o sm" id="geo" onClick={myLoc}><Icon n="pin" s={16} /> {loc ? trs("تم تحديد موقعك") : trs("استخدم موقعي")}</button>
+        <select className="fi sel" value={gov} onChange={(e) => setGov(e.target.value)}><option value="">{trs("كل المحافظات")}</option>{GOV.map((g) => <option key={g} value={g}>{trs(g)}</option>)}</select>
       </div>
-      {!rows && feat && feat.length > 0 && <><h2 className="mt">منتجات متاحة الآن</h2><div className="pgrid">{feat.map((p) => <ProdCard key={p.name} p={p} />)}</div></>}
-      {groups && !groups.length && <div className="card center"><h3>مفيش نتايج</h3><p className="mu">جرّب اسم تاني أو المادة الفعالة، أو غيّر المحافظة.</p></div>}
+      {!rows && feat && feat.length > 0 && <><h2 className="mt">{trs("منتجات متاحة الآن")}</h2><div className="pgrid">{feat.map((p) => <ProdCard key={p.name} p={p} />)}</div></>}
+      {groups && !groups.length && <div className="card center"><h3>{trs("مفيش نتايج")}</h3><p className="mu">{trs("جرّب اسم تاني أو المادة الفعالة، أو غيّر المحافظة.")}</p></div>}
       {groups?.map(({ ph, items, d, stock }) => (
         <div className="card ph" key={ph.id}>
           <div className="row between wrap">
-            <div><h3>{ph.name} {ph.verified ? <Badge c="ok">موثّقة</Badge> : <Badge c="am">قيد التوثيق</Badge>}</h3>
-              <p className="mu sm2">{ph.governorate} · {ph.address}{ph.hours ? ' · ' + ph.hours : ''}</p></div>
+            <div><h3>{ph.name} {ph.verified ? <Badge c="ok">{trs("موثّقة")}</Badge> : <Badge c="am">{trs("قيد التوثيق")}</Badge>}</h3>
+              <p className="mu sm2">{trs(ph.governorate)} · {ph.address}{ph.hours ? ' · ' + ph.hours : ''}</p></div>
             <div className="tr">{d != null && <b className="dist">{fmtKm(d)}</b>}
-              <div><Badge c={ph.open ? 'ok' : 'rd'}>{ph.open ? 'مفتوحة' : 'مغلقة'}</Badge> <Badge c={stock ? 'ok' : 'rd'}>{stock ? 'متاح' : 'نفد'}</Badge></div></div>
+              <div><Badge c={ph.open ? 'ok' : 'rd'}>{ph.open ? trs("مفتوحة") : trs("مغلقة")}</Badge> <Badge c={stock ? 'ok' : 'rd'}>{stock ? trs("متاح") : trs("نفد")}</Badge></div></div>
           </div>
           {items.map((p) => (
             <div className="prod" key={p.id}>
               {p.imageUrl || alt[p.nameLower] ? <img src={p.imageUrl || alt[p.nameLower]} alt={p.name} loading="lazy" /> : <div className="noimg"><Icon n="pill" s={30} /></div>}
               <div className="pi">
-                <b>{p.name}</b> {p.rx && <Badge c="am">يحتاج روشتة</Badge>}
+                <b>{p.name}</b> {p.rx && <Badge c="am">{trs("يحتاج روشتة")}</Badge>}
                 <div className="mu sm2">{[p.dose, p.form, p.ingredient].filter(Boolean).join(' · ')}</div>
-                {(p.description || p.warnings) && <details><summary>التفاصيل</summary>
-                  {p.description && <p><b>الاستخدام:</b> {p.description}</p>}{p.warnings && <p><b>تحذيرات:</b> {p.warnings}</p>}</details>}
+                {(p.description || p.warnings) && <details><summary>{trs("التفاصيل")}</summary>
+                  {p.description && <p><b>{trs("الاستخدام:")}</b> {p.description}</p>}{p.warnings && <p><b>{trs("تحذيرات:")}</b> {p.warnings}</p>}</details>}
               </div>
-              <div className="pr"><b>{p.price} ج.م</b>
-                {p.stock > 0 ? (p.rx ? <a className="go" href={'#/rx/new?ph=' + p.pharmacyId}>ارفع روشتة ◂</a> :
+              <div className="pr"><b>{p.price} {trs("ج.م")}</b>
+                {p.stock > 0 ? (p.rx ? <a className="go" href={'#/rx/new?ph=' + p.pharmacyId}>{trs("ارفع روشتة ◂")}</a> :
                   cart.items[p.id] ? <div className="qty"><button onClick={() => rem(p.id)}>−</button><span>{cart.items[p.id].qty}</span><button onClick={() => add(p)}>＋</button></div>
-                    : <button className="btn sm" onClick={() => add(p)}>أضف للطلب</button>)
-                  : <Badge c="rd">نفد</Badge>}</div>
+                    : <button className="btn sm" onClick={() => add(p)}>{trs("أضف للطلب")}</button>)
+                  : <Badge c="rd">{trs("نفد")}</Badge>}</div>
             </div>
           ))}
         </div>
       ))}
-      {list.length > 0 && <div className="cartbar"><span>{list.reduce((s, x) => s + x.qty, 0)} عنصر · <b>{total} ج.م</b> · {phs[cart.pid]?.name}</span><button className="btn g" onClick={startCheckout}>إتمام الطلب</button></div>}
+      {list.length > 0 && <div className="cartbar"><span>{list.reduce((s, x) => s + x.qty, 0)} {trs("عنصر ·")}{" "}<b>{total} {trs("ج.م")}</b> · {phs[cart.pid]?.name}</span><button className="btn g" onClick={startCheckout}>{trs("إتمام الطلب")}</button></div>}
       {co && <div className="mo" onClick={(e) => e.target === e.currentTarget && setCo(null)}><form className="card narrow" onSubmit={send}>
-        <h2>إتمام الطلب</h2><p className="mu">من {phs[cart.pid].name} · الإجمالي <b>{total} ج.م</b> (الدفع عند الاستلام)</p>
-        <Field label="رقم الموبايل" name="phone" type="tel" v={co.phone} on={(v) => setCo({ ...co, phone: v })} dir="ltr" />
-        <Field label="عنوان التوصيل" name="address" v={co.address} on={(v) => setCo({ ...co, address: v })} />
-        <button type="button" className="btn o sm" onClick={async () => { try { const p = await getPos(); setCo((c) => ({ ...c, dest: { lat: +p.lat.toFixed(6), lng: +p.lng.toFixed(6) } })); toast('تم تحديد موقع التوصيل ✓'); } catch { toast('اسمح بالوصول للموقع'); } }}><Icon n="pin" s={16} /> {co.dest ? 'تم تحديد موقع التوصيل ✓' : 'حدد موقع التوصيل (عشان تتابع المندوب)'}</button>
-        <Field label="ملاحظات (اختياري)" name="note" type="textarea" v={co.note} on={(v) => setCo({ ...co, note: v })} />
-        <div className="row g"><button className="btn g" style={{ flex: 1 }}>تأكيد الطلب</button><button type="button" className="btn o" onClick={() => setCo(null)}>إلغاء</button></div>
+        <h2>{trs("إتمام الطلب")}</h2><p className="mu">{trs("من")}{" "}{phs[cart.pid].name} {trs("· الإجمالي")}{" "}<b>{total} {trs("ج.م")}</b> {trs("(الدفع عند الاستلام)")}</p>
+        <Field label={trs("رقم الموبايل")} name="phone" type="tel" v={co.phone} on={(v) => setCo({ ...co, phone: v })} dir="ltr" />
+        <Field label={trs("عنوان التوصيل")} name="address" v={co.address} on={(v) => setCo({ ...co, address: v })} />
+        <button type="button" className="btn o sm" onClick={async () => { try { const p = await getPos(); setCo((c) => ({ ...c, dest: { lat: +p.lat.toFixed(6), lng: +p.lng.toFixed(6) } })); toast(trs("تم تحديد موقع التوصيل ✓")); } catch { toast(trs("اسمح بالوصول للموقع")); } }}><Icon n="pin" s={16} /> {co.dest ? trs("تم تحديد موقع التوصيل ✓") : trs("حدد موقع التوصيل (عشان تتابع المندوب)")}</button>
+        <Field label={trs("ملاحظات (اختياري)")} name="note" type="textarea" v={co.note} on={(v) => setCo({ ...co, note: v })} />
+        <div className="row g"><button className="btn g" style={{ flex: 1 }}>{trs("تأكيد الطلب")}</button><button type="button" className="btn o" onClick={() => setCo(null)}>{trs("إلغاء")}</button></div>
       </form></div>}
     </div>
   );

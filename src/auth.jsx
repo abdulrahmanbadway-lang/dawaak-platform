@@ -2,21 +2,22 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, configured } from './firebase.js';
+import { trs } from './lib/i18n.js';
 
 const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
 
 export const authError = (e) => ({
-  'auth/invalid-credential': 'البريد أو كلمة المرور غير صحيحة',
-  'auth/wrong-password': 'البريد أو كلمة المرور غير صحيحة',
-  'auth/user-not-found': 'البريد أو كلمة المرور غير صحيحة',
-  'auth/email-already-in-use': 'البريد ده مستخدم قبل كده',
-  'auth/weak-password': 'كلمة المرور ضعيفة (6 أحرف على الأقل)',
-  'auth/invalid-email': 'البريد الإلكتروني غير صحيح',
-  'auth/network-request-failed': 'مشكلة في الاتصال بالإنترنت',
-  'auth/too-many-requests': 'محاولات كتير، استنى شوية وجرّب تاني',
-  'auth/missing-email': 'اكتب بريدك الإلكتروني',
-}[e.code] || 'حصل خطأ: ' + (e.message || e.code));
+  'auth/invalid-credential': trs("البريد أو كلمة المرور غير صحيحة"),
+  'auth/wrong-password': trs("البريد أو كلمة المرور غير صحيحة"),
+  'auth/user-not-found': trs("البريد أو كلمة المرور غير صحيحة"),
+  'auth/email-already-in-use': trs("البريد ده مستخدم قبل كده"),
+  'auth/weak-password': trs("كلمة المرور ضعيفة (6 أحرف على الأقل)"),
+  'auth/invalid-email': trs("البريد الإلكتروني غير صحيح"),
+  'auth/network-request-failed': trs("مشكلة في الاتصال بالإنترنت"),
+  'auth/too-many-requests': trs("محاولات كتير، استنى شوية وجرّب تاني"),
+  'auth/missing-email': trs("اكتب بريدك الإلكتروني"),
+}[e.code] || trs("حصل خطأ: ") + (e.message || e.code));
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -32,12 +33,12 @@ export function AuthProvider({ children }) {
       const s = await getDoc(doc(db, 'users', u.uid));
       if (s.exists() && s.data().blocked === true) {
         // حساب محظور: نخرّجه ونوضّح السبب (الحظر الفعلي بتفرضه قواعد Firestore على الكتابة والطلبات والروشتات)
-        setIssue('حسابك محظور من إدارة الموقع. تواصل مع الدعم لو شايف إن ده بالغلط.'); setProfile(null); signOut(auth).catch(() => {});
+        setIssue(trs("حسابك محظور من إدارة الموقع. تواصل مع الدعم لو شايف إن ده بالغلط.")); setProfile(null); signOut(auth).catch(() => {});
       } else if (s.exists()) { setIssue(''); setProfile({ id: u.uid, ...s.data() }); }
-      else { setIssue('الحساب سجّل دخول بس مفيش ملف ليه في Firestore (users/' + u.uid + '). أنشئ الملف أو سجّل حساب جديد.'); setProfile(null); }
+      else { setIssue(trs("الحساب سجّل دخول بس مفيش ملف ليه في Firestore (users/") + u.uid + trs("). أنشئ الملف أو سجّل حساب جديد.")); setProfile(null); }
     } catch (e) {
       console.error('load profile failed', e);
-      setIssue('تعذر قراءة ملف الحساب: ' + (e.code || e.message) + (/permission/i.test(e.code || e.message) ? ' (قواعد Firestore بترفض القراءة)' : ''));
+      setIssue(trs("تعذر قراءة ملف الحساب: ") + (e.code || e.message) + (/permission/i.test(e.code || e.message) ? trs(" (قواعد Firestore بترفض القراءة)") : ''));
       setProfile(null);
     }
   };

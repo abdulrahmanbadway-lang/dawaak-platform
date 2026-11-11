@@ -1,3 +1,4 @@
+import { trs } from './lib/i18n.js';
 export function toast(m) {
   const d = document.createElement('div');
   d.className = 'toast'; d.textContent = m;
@@ -11,7 +12,7 @@ export function Field({ label, name, v, on, type = 'text', options = [], hint, .
     return <label className="ck"><input type="checkbox" name={name} checked={!!v} onChange={(e) => on(e.target.checked)} /> {label}</label>;
   let el;
   if (type === 'select')
-    el = <select id={id} name={name} value={v} onChange={(e) => on(e.target.value)} className="fi" {...rest}><option value="">اختر…</option>{options.map((o) => <option key={o}>{o}</option>)}</select>;
+    el = <select id={id} name={name} value={v} onChange={(e) => on(e.target.value)} className="fi" {...rest}><option value="">{trs("اختر…")}</option>{options.map((o) => <option key={o} value={o}>{trs(o)}</option>)}</select>;
   else if (type === 'textarea')
     el = <textarea id={id} name={name} value={v} onChange={(e) => on(e.target.value)} className="fi" rows="3" {...rest} />;
   else

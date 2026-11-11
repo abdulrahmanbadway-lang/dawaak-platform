@@ -1,0 +1,17 @@
+/* تعديلات اتجاه الإنجليزي (LTR). بتشتغل بس لما <html dir="ltr"> */
+.ic.lng{font-weight:800;font-size:13px;letter-spacing:.2px;line-height:1}
+[dir="ltr"] body{font-family:'Inter','Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif}
+[dir="ltr"] .tr{text-align:right}
+[dir="ltr"] .pr{text-align:right}
+[dir="ltr"] .items{padding-right:0;padding-left:20px}
+[dir="ltr"] .thumb .x{left:auto;right:3px}
+[dir="ltr"] .tzoom{right:auto;left:10px}
+[dir="ltr"] .tctl{right:auto;left:12px}
+[dir="ltr"] .trk-chips{left:auto;right:12px}
+[dir="ltr"] .f1{right:auto;left:0}
+[dir="ltr"] .f2{left:auto;right:0}
+[dir="ltr"] .f3{right:auto;left:16px}
+[dir="ltr"] .go{direction:ltr}
+[dir="ltr"] .back .ic-svg,[dir="ltr"] .back svg{transform:scaleX(-1)}
+.ua .btn{white-space:nowrap}
+@media(max-width:480px){.ua{gap:6px}.ua .btn.sm{padding:6px 10px;font-size:12.5px}.ic.lng{font-size:12px}}

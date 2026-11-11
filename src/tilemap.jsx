@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fitZoom, project, unproject, mPerPx, TILE } from './lib/map.js';
 import { Icon } from './icons.jsx';
+import { trs } from './lib/i18n.js';
 
 const dpr = () => (typeof window !== 'undefined' && window.devicePixelRatio > 1.25 ? '@2x' : '');
 const CARTO = (t, z, x, y) => `https://${'abcd'[(x + y) % 4]}.basemaps.cartocdn.com/rastertiles/${t}/${z}/${x}/${y}${dpr()}.png`;
@@ -101,7 +102,7 @@ export default function TileMap({ markers, route, trail, height = 380 }) {
 
   return (
     <div className="tmap" ref={box} style={{ height }} dir="ltr" onPointerDown={down} onPointerMove={mv} onPointerUp={up} onPointerCancel={up} onDoubleClick={() => zoom(1)}>
-      {!pts.length && <div className="tempty">مفيش مواقع نعرضها لسه</div>}
+      {!pts.length && <div className="tempty">{trs("مفيش مواقع نعرضها لسه")}</div>}
       {shown.map((t) => <img key={t.k + theme} className="tile" src={CARTO(theme, t.z, t.wx, t.ty)} alt="" draggable="false" style={{ left: t.x, top: t.y }}
         onError={(e) => { if (!e.target.dataset.f) { e.target.dataset.f = 1; e.target.src = OSM(t.z, t.wx, t.ty); } }} />)}
       {view && (
@@ -125,9 +126,9 @@ export default function TileMap({ markers, route, trail, height = 380 }) {
         );
       })}
       <div className="tctl">
-        <button type="button" aria-label="تكبير" onClick={() => zoom(1)}><Icon n="plus" s={18} /></button>
-        <button type="button" aria-label="تصغير" onClick={() => zoom(-1)}><Icon n="minus" s={18} /></button>
-        <button type="button" aria-label="إعادة التمركز" className={follow ? 'on' : ''} onClick={() => setFollow(true)}><Icon n="target" s={18} /></button>
+        <button type="button" aria-label={trs("تكبير")} onClick={() => zoom(1)}><Icon n="plus" s={18} /></button>
+        <button type="button" aria-label={trs("تصغير")} onClick={() => zoom(-1)}><Icon n="minus" s={18} /></button>
+        <button type="button" aria-label={trs("إعادة التمركز")} className={follow ? 'on' : ''} onClick={() => setFollow(true)}><Icon n="target" s={18} /></button>
       </div>
       <span className="tattr">© OpenStreetMap · © CARTO</span>
     </div>

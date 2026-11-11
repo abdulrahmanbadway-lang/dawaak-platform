@@ -1,5 +1,6 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase.js';
+import { trs } from './i18n.js';
 
 // ضغط الصورة قبل الرفع (أقصى بُعد 420px) عشان تبقى خفيفة
 export async function compress(file, max = 420, q = 0.72) {
@@ -17,7 +18,7 @@ export const PRODUCT_IMG_MAX_CHARS = 150000;
 export async function productImage(file) {
   const url = URL.createObjectURL(file);
   try {
-    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('تعذر قراءة الصورة')); i.src = url; });
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error(trs("تعذر قراءة الصورة"))); i.src = url; });
     for (const [max, q] of [[560, 0.78], [480, 0.7], [400, 0.62], [320, 0.52], [260, 0.45]]) {
       const s = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
@@ -27,7 +28,7 @@ export async function productImage(file) {
       const d = c.toDataURL('image/jpeg', q);
       if (d.length <= PRODUCT_IMG_MAX_CHARS) return d;
     }
-    throw new Error('الصورة كبيرة جداً. صوّر العبوة من مسافة أقرب.');
+    throw new Error(trs("الصورة كبيرة جداً. صوّر العبوة من مسافة أقرب."));
   } finally { URL.revokeObjectURL(url); }
 }
 export async function uploadImage(file, uid) {
@@ -45,7 +46,7 @@ export const RX_MAX_CHARS = 300000;
 export async function rxImage(file) {
   const url = URL.createObjectURL(file);
   try {
-    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('تعذر قراءة الصورة')); i.src = url; });
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error(trs("تعذر قراءة الصورة"))); i.src = url; });
     for (const [max, q] of [[1280, 0.72], [1100, 0.65], [960, 0.58], [820, 0.5], [700, 0.42]]) {
       const s = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
@@ -55,6 +56,6 @@ export async function rxImage(file) {
       const d = c.toDataURL('image/jpeg', q);
       if (d.length <= RX_MAX_CHARS) return d;
     }
-    throw new Error('الصورة كبيرة جداً. صوّر الروشتة من مسافة أقرب أو بإضاءة أحسن.');
+    throw new Error(trs("الصورة كبيرة جداً. صوّر الروشتة من مسافة أقرب أو بإضاءة أحسن."));
   } finally { URL.revokeObjectURL(url); }
 }
