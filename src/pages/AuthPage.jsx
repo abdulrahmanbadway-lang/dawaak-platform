@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useAuth, authError } from '../auth.jsx';
 import { go } from '../router.js';
 import { GOV } from '../lib/gov.js';
+import { citiesOf } from '../lib/egypt.js';
 import { Field, toast } from '../ui.jsx';
 import { trs } from '../lib/i18n.js';
 
 export default function AuthPage({ mode, q }) {
   const { profile, issue, login, register, resetPassword } = useAuth();
-  const [role, setRole] = useState(q.get('role') === 'pharmacy' ? 'pharmacy' : 'patient');
-  const [f, setF] = useState({ name: '', email: '', password: '', pname: '', license: '', phone: '', governorate: '', address: '' });
+  const role = q.get('role') === 'pharmacy' ? 'pharmacy' : 'patient'; // التسجيل العادي للمرضى؛ الصيدليات بتنضم من رابط "عندك صيدلية؟"
+  const [f, setF] = useState({ name: '', email: '', password: '', pname: '', license: '', phone: '', governorate: '', city: '', address: '' });
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false), [sent, setSent] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
@@ -28,14 +29,14 @@ export default function AuthPage({ mode, q }) {
     if (f.password.length < 6) return setErr(trs("كلمة المرور 6 أحرف على الأقل"));
     if (mode === 'register') {
       if (f.name.trim().length < 2) return setErr(trs("اكتب اسمك"));
-      if (role === 'pharmacy' && (!f.pname.trim() || !f.license.trim() || !f.phone.trim() || !f.governorate || !f.address.trim()))
-        return setErr(trs("كمّل بيانات الصيدلية (الاسم، رقم الترخيص، الموبايل، المحافظة، العنوان)"));
+      if (role === 'pharmacy' && (!f.pname.trim() || !f.license.trim() || !f.phone.trim() || !f.governorate || !f.city || !f.address.trim()))
+        return setErr(trs("كمّل بيانات الصيدلية (الاسم، رقم الترخيص، الموبايل، المحافظة، المدينة، العنوان)"));
     }
     setBusy(true);
     try {
       if (mode === 'login') await login(f.email, f.password);
       else await register({ name: f.name.trim(), email: f.email, password: f.password, role,
-        pharmacy: role === 'pharmacy' ? { name: f.pname.trim(), license: f.license.trim(), phone: f.phone.trim(), governorate: f.governorate, address: f.address.trim(), hours: '' } : null });
+        pharmacy: role === 'pharmacy' ? { name: f.pname.trim(), license: f.license.trim(), phone: f.phone.trim(), governorate: f.governorate, city: f.city, address: f.address.trim(), hours: '' } : null });
       toast(trs("أهلاً بيك في دواك 👋"));
     } catch (x) { setErr(authError(x)); }
     setBusy(false);
@@ -57,11 +58,8 @@ export default function AuthPage({ mode, q }) {
   );
   return (
     <form className="card narrow" onSubmit={submit}>
-      <h2>{mode === 'login' ? trs("تسجيل الدخول") : trs("إنشاء حساب جديد")}</h2>
-      {mode === 'register' && <div className="seg">
-        <button type="button" className={role === 'patient' ? 'on' : ''} onClick={() => setRole('patient')}>{trs("أنا مريض")}</button>
-        <button type="button" className={role === 'pharmacy' ? 'on' : ''} onClick={() => setRole('pharmacy')}>{trs("أنا صيدلية")}</button>
-      </div>}
+      <h2>{mode === 'login' ? trs("تسجيل الدخول") : role === 'pharmacy' ? trs("انضمام صيدلية لدواك") : trs("إنشاء حساب جديد")}</h2>
+      {mode === 'register' && role === 'pharmacy' && <p className="mu sm2">{trs("ابعتلنا بيانات صيدليتك، وهنراجع الترخيص ونوثّقها قبل ما تظهر كصيدلية موثّقة.")}</p>}
       {mode === 'register' && <Field label={role === 'pharmacy' ? trs("اسم المسؤول") : trs("الاسم")} name="name" v={f.name} on={set('name')} autoComplete="name" />}
       <Field label={trs("البريد الإلكتروني")} name="email" type="email" v={f.email} on={set('email')} autoComplete="email" dir="ltr" />
       <Field label={trs("كلمة المرور")} name="password" type="password" v={f.password} on={set('password')} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} dir="ltr" />
@@ -70,7 +68,8 @@ export default function AuthPage({ mode, q }) {
         <Field label={trs("اسم الصيدلية")} name="pname" v={f.pname} on={set('pname')} />
         <Field label={trs("رقم ترخيص الصيدلية")} name="license" v={f.license} on={set('license')} hint={trs("هيتم التحقق منه قبل توثيق الصيدلية")} />
         <Field label={trs("رقم الموبايل")} name="phone" type="tel" v={f.phone} on={set('phone')} dir="ltr" />
-        <Field label={trs("المحافظة")} name="governorate" type="select" options={GOV} v={f.governorate} on={set('governorate')} />
+        <Field label={trs("المحافظة")} name="governorate" type="select" options={GOV} v={f.governorate} on={(v) => setF((s) => ({ ...s, governorate: v, city: '' }))} />
+        <Field label={trs("المدينة / المنطقة")} name="city" type="select" options={citiesOf(f.governorate)} v={f.city} on={set('city')} />
         <Field label={trs("العنوان بالتفصيل")} name="address" v={f.address} on={set('address')} />
       </>}
       {err && <p className="err">{err}</p>}
@@ -78,6 +77,7 @@ export default function AuthPage({ mode, q }) {
       <button className="btn full" disabled={busy}>{busy ? '…' : mode === 'login' ? trs("دخول") : trs("إنشاء الحساب")}</button>
       {mode === 'login' && <p className="c"><a href="#/login" style={{ color: 'var(--bl2)', fontWeight: 700 }} onClick={(e) => { e.preventDefault(); setReset(true); setErr(''); }}>{trs("نسيت كلمة السر؟")}</a></p>}
       <p className="mu c">{mode === 'login' ? <>{trs("معندكش حساب؟")}{" "}<a href="#/register">{trs("سجّل دلوقتي")}</a></> : <>{trs("عندك حساب؟")}{" "}<a href="#/login">{trs("سجّل دخول")}</a></>}</p>
+      {mode === 'register' && <p className="mu c">{role === 'pharmacy' ? <a href="#/register">{trs("رجوع لإنشاء حساب عادي")}</a> : <a href="#/register?role=pharmacy">{trs("عندك صيدلية؟ انضم لدواك")}</a>}</p>}
     </form>
   );
 }

@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { PRODUCTS } from './data.mjs';
+import { GOV_NAMES } from '../src/lib/egypt.js';
 
 // كلمة السر مش مكتوبة في الكود: من DW_PASSWORD لو حطيتها، أو بتتولّد عشوائي كل مرة وتتطبع في الآخر
 const ALPHA = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -20,14 +21,14 @@ export const norm = (s = '') => s.toString().trim().toLowerCase()
 
 // الدكاترة (الصيادلة) أصحاب الصيدليات
 export const PHARMACIES = [
-  { n: 'صيدلية النور', o: 'د. أحمد سمير', g: 'القاهرة', a: 'شارع قصر النيل، وسط البلد', lat: 30.0455, lng: 31.239, h: '9 ص – 12 م', v: true, open: true },
-  { n: 'صيدلية الحياة', o: 'د. منى حسن', g: 'القاهرة', a: 'شارع عباس العقاد، مدينة نصر', lat: 30.0626, lng: 31.33, h: '24 ساعة', v: true, open: true },
-  { n: 'صيدلية السلام', o: 'د. كريم عادل', g: 'الجيزة', a: 'شارع التحرير، الدقي', lat: 30.0381, lng: 31.2113, h: '8 ص – 1 ص', v: true, open: true },
-  { n: 'صيدلية الشفاء', o: 'د. هدى فاروق', g: 'الجيزة', a: 'شارع جامعة الدول العربية، المهندسين', lat: 30.0553, lng: 31.2002, h: '10 ص – 11 م', v: true, open: true },
-  { n: 'صيدلية الأمل', o: 'د. طارق مصطفى', g: 'الإسكندرية', a: 'شارع سموحة الرئيسي', lat: 31.2156, lng: 29.9422, h: '9 ص – 2 ص', v: true, open: true },
-  { n: 'صيدلية المحبة', o: 'د. نهى إبراهيم', g: 'الدقهلية', a: 'شارع الجلاء، المنصورة', lat: 31.0409, lng: 31.3785, h: '9 ص – 11 م', v: false, open: true },
-  { n: 'صيدلية الرحمة', o: 'د. ياسر محمود', g: 'الغربية', a: 'شارع الجيش، طنطا', lat: 30.7865, lng: 31.0004, h: '24 ساعة', v: false, open: true },
-  { n: 'صيدلية الصعيد', o: 'د. سلمى عبد الله', g: 'أسيوط', a: 'شارع الجمهورية، أسيوط', lat: 27.1783, lng: 31.1859, h: '9 ص – 12 م', v: true, open: false },
+  { n: 'صيدلية النور', c: 'وسط البلد', o: 'د. أحمد سمير', g: 'القاهرة', a: 'شارع قصر النيل، وسط البلد', lat: 30.0455, lng: 31.239, h: '9 ص – 12 م', v: true, open: true },
+  { n: 'صيدلية الحياة', c: 'مدينة نصر', o: 'د. منى حسن', g: 'القاهرة', a: 'شارع عباس العقاد، مدينة نصر', lat: 30.0626, lng: 31.33, h: '24 ساعة', v: true, open: true },
+  { n: 'صيدلية السلام', c: 'الدقي', o: 'د. كريم عادل', g: 'الجيزة', a: 'شارع التحرير، الدقي', lat: 30.0381, lng: 31.2113, h: '8 ص – 1 ص', v: true, open: true },
+  { n: 'صيدلية الشفاء', c: 'المهندسين', o: 'د. هدى فاروق', g: 'الجيزة', a: 'شارع جامعة الدول العربية، المهندسين', lat: 30.0553, lng: 31.2002, h: '10 ص – 11 م', v: true, open: true },
+  { n: 'صيدلية الأمل', c: 'سموحة', o: 'د. طارق مصطفى', g: 'الإسكندرية', a: 'شارع سموحة الرئيسي', lat: 31.2156, lng: 29.9422, h: '9 ص – 2 ص', v: true, open: true },
+  { n: 'صيدلية المحبة', c: 'المنصورة', o: 'د. نهى إبراهيم', g: 'الدقهلية', a: 'شارع الجلاء، المنصورة', lat: 31.0409, lng: 31.3785, h: '9 ص – 11 م', v: false, open: true },
+  { n: 'صيدلية الرحمة', c: 'طنطا', o: 'د. ياسر محمود', g: 'الغربية', a: 'شارع الجيش، طنطا', lat: 30.7865, lng: 31.0004, h: '24 ساعة', v: false, open: true },
+  { n: 'صيدلية الصعيد', c: 'أسيوط', o: 'د. سلمى عبد الله', g: 'أسيوط', a: 'شارع الجمهورية، أسيوط', lat: 27.1783, lng: 31.1859, h: '9 ص – 12 م', v: true, open: false },
 ];
 // المناديب: اتنين لكل صيدلية من أول 4
 const CN = ['محمود السيد', 'إسلام جمال', 'أيمن رشاد', 'مصطفى عوض', 'حسام الدين', 'عمرو فتحي', 'باسم نبيل', 'خالد منصور'];
@@ -85,7 +86,7 @@ export function buildDocs(uid) {
   ACCOUNTS.forEach((a) => add(`users/${uid(a.key)}`, { name: a.name, email: a.email, role: a.role, createdAt: D(20 * 864e5), seed: true }));
   PHARMACIES.forEach((p, i) => {
     const id = uid('ph' + (i + 1));
-    add(`pharmacies/${id}`, { name: p.n, ownerName: p.o, license: `EG-PH-${1001 + i}`, phone: `0100000${String(1010 + i)}`, governorate: p.g, address: p.a, hours: p.h, lat: p.lat, lng: p.lng, open: p.open, status: 'active', verified: p.v, createdAt: D(30 * 864e5), seed: true });
+    add(`pharmacies/${id}`, { name: p.n, ownerName: p.o, license: `EG-PH-${1001 + i}`, phone: `0100000${String(1010 + i)}`, governorate: p.g, city: p.c, address: p.a, hours: p.h, lat: p.lat, lng: p.lng, open: p.open, status: 'active', verified: p.v, createdAt: D(30 * 864e5), seed: true });
     const r = rng(101 + i * 7), keep = i < 4 ? 0.5 : 0.3;
     PRODUCTS.forEach((pr) => {
       const r1 = r(), r2 = r(), r3 = r(), r4 = r();
@@ -125,6 +126,16 @@ export function buildDocs(uid) {
   // البانرات (الأدمن بيعدلها من لوحة التحكم)
   [['عروض الأسبوع', 'خصومات على أكتر من 40 صنف من الصيدليات القريبة منك', '#/shop?offers=1'], ['ارفع روشتتك', 'الصيدلي هيرد عليك بالأصناف والأسعار قبل ما تأكد', '#/rx/new'], ['كل احتياجات طفلك', 'حفاضات وأغذية ورعاية بتوصل لحد باب البيت', '#/shop']]
     .forEach(([title, sub, link], i) => add(`banners/seed-b${i + 1}`, { title, sub, link, imageUrl: IMG.banners[i], order: i + 1, active: true, createdAt: D((3 - i) * 864e5) }));
+  // مناطق المستخدمين واحتياج كل منطقة (أرقام تجريبية للعرض بتتمسح مع clear.mjs)
+  const GOVP = { p1: ['الجيزة', 30.04, 31.21], p2: ['القاهرة', 30.05, 31.24], p3: ['القاهرة', 30.06, 31.34], p4: ['الجيزة', 30.06, 31.2], p5: ['الإسكندرية', 31.22, 29.95], p6: ['الدقهلية', 31.04, 31.38] };
+  PATIENTS.forEach((p, i) => { const [gov, lat, lng] = GOVP[p.key]; add(`presence/${uid(p.key)}`, { uid: uid(p.key), path: ['/', '/shop', '/orders', '/search', '/cart', '/'][i], dev: 'Android · Chrome', mobile: true, cc: 'EG', gov, lat, lng, since: now - 3 * H, lastSeen: D((i + 1) * 4 * 6e4) }); });
+  [['الإسكندرية', 31.2, 29.92], ['الجيزة', 29.98, 31.13], ['القاهرة', 30.03, 31.47], ['الدقهلية', 31.05, 31.37], ['أسيوط', 27.18, 31.19], ['الأقصر', 25.69, 32.64], ['القاهرة', 30.0, 31.29], ['الشرقية', 30.59, 31.5]].forEach(([gov, lat, lng], i) => add(`presence/v_seed${i + 1}`, { uid: null, sid: `v_seed${i + 1}`, path: '/shop', dev: i % 2 ? 'Windows · Chrome' : 'Android · Chrome', mobile: i % 2 === 0, cc: 'EG', gov, lat, lng, since: now - 2 * H, lastSeen: D((i + 2) * 7 * 6e4) }));
+  const DEM = { 'القاهرة': { q: [['بنادول', 22], ['فيتامين سي', 15], ['سيتافيل', 9], ['كلاريتين', 7]], c: [['بنادول إكسترا', 8], ['سنتروم', 5], ['أومرون جهاز قياس ضغط', 3]] },
+    'الجيزة': { q: [['بنادول كولد', 18], ['زيرتك', 11], ['فولتارين', 8], ['ميزان حرارة', 6]], c: [['بنادول كولد آند فلو', 7], ['فولتارين إميلجيل', 5]] },
+    'الإسكندرية': { q: [['بامبرز', 14], ['سيريلاك', 10], ['واقي شمس', 9], ['بيبانثين', 6]], c: [['بامبرز مقاس 4', 6], ['جونسون شامبو أطفال', 4]] },
+    'الدقهلية': { q: [['جلوكوفاج', 9], ['شرائط سكر', 8], ['كونكور', 5]], c: [['أكيو تشيك شرائط سكر', 4]] },
+    'أسيوط': { q: [['فيتامين د', 6], ['أوميجا 3', 4]], c: [['فيتامين د3 5000', 2]] } };
+  Object.entries(DEM).forEach(([gov, d]) => ['q', 'c'].forEach((k) => (d[k] || []).forEach(([term, n], i) => add(`demand/${k}_${GOV_NAMES.indexOf(gov)}_seed${i}`, { gov, term, k, n, last: D((i + 1) * H) }))));
   return docs;
 }
 

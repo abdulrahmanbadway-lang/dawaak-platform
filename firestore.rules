@@ -188,10 +188,26 @@ service cloud.firestore {
     // ───────── المتواجدون الآن (لوحة الأدمن) ─────────
     // مستند لكل مستخدم مسجّل (id = uid) ولكل زائر (id = v_xxxx). الكتابة بتتحقق من الشكل والحجم، والقراءة والحذف للأدمن بس.
     // المسجّل مش بيقدر يكتب إلا مستنده هو؛ الاسم والدور بيتجابوا من users مش من هنا عشان ما يتزوروش.
+    // ───────── احتياج المناطق (عدّادات مجمّعة بدون بيانات شخصية) ─────────
+    // أي زائر يقدر يزوّد عدّاد كلمة بحث/سلة لمحافظته بمقدار 1 بس؛ الأدمن بس هو اللي يقرأها.
+    match /demand/{id} {
+      allow read: if isAdmin();
+      allow create, update: if request.resource.data.keys().hasOnly(['gov', 'term', 'k', 'n', 'last'])
+        && id.matches('^[qc]_[0-9]{1,2}_[a-z0-9]{1,13}$')
+        && request.resource.data.k in ['q', 'c'] && id[0:1] == request.resource.data.k
+        && request.resource.data.gov is string && request.resource.data.gov.size() <= 20
+        && request.resource.data.term is string && request.resource.data.term.size() >= 2 && request.resource.data.term.size() <= 40
+        && request.resource.data.last == request.time
+        && request.resource.data.n is int
+        && request.resource.data.n == (resource == null ? 1 : resource.data.n + 1)
+        && (resource == null || (resource.data.gov == request.resource.data.gov && resource.data.term == request.resource.data.term));
+      allow delete: if isAdmin();
+    }
+
     match /presence/{id} {
       function pOk() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['sid', 'uid', 'path', 'dev', 'mobile', 'ip', 'cc', 'since', 'lastSeen'])
+        return d.keys().hasOnly(['sid', 'uid', 'path', 'dev', 'mobile', 'ip', 'cc', 'gov', 'lat', 'lng', 'since', 'lastSeen'])
           && d.keys().hasAll(['uid', 'path', 'lastSeen'])
           && d.lastSeen == request.time
           && d.path is string && d.path.size() <= 80
@@ -199,6 +215,9 @@ service cloud.firestore {
           && (!('mobile' in d) || d.mobile is bool)
           && (!('ip' in d) || (d.ip is string && d.ip.size() <= 45))
           && (!('cc' in d) || (d.cc is string && d.cc.size() <= 3))
+          && (!('gov' in d) || (d.gov is string && d.gov.size() <= 20))
+          && (!('lat' in d) || (d.lat is number && d.lat >= 21 && d.lat <= 32.5))
+          && (!('lng' in d) || (d.lng is number && d.lng >= 24 && d.lng <= 37))
           && (!('since' in d) || d.since is number)
           && (!('sid' in d) || (d.sid is string && d.sid.size() <= 30))
           && ((d.uid == null && id.matches('v_[a-z0-9]{6,24}')) || (signed() && d.uid == request.auth.uid && id == request.auth.uid));

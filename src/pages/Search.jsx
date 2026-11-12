@@ -3,7 +3,7 @@ import { collection, query, where, limit, getDocs, getDoc, doc } from 'firebase/
 import { db } from '../firebase.js';
 import { Icon } from '../icons.jsx';
 import { GOV } from '../lib/gov.js';
-import { km, fmtKm, getPos } from '../lib/geo.js';
+import { km, fmtKm } from '../lib/geo.js';
 import { norm } from '../lib/text.js';
 import { toast, Badge } from '../ui.jsx';
 import { useCart, setQty } from '../lib/cart.js';
@@ -11,6 +11,8 @@ import { addOffer } from '../shopparts.jsx';
 import { loadHome } from '../lib/featured.js';
 import { ProdCard } from '../components.jsx';
 import { trs, tdata } from '../lib/i18n.js';
+import { getWhere, askLocation } from '../lib/where.js';
+import { track } from '../lib/demand.js';
 
 async function findProducts(text) {
   const t = norm(text), end = t + '\uf8ff', out = new Map();
@@ -24,7 +26,7 @@ async function findProducts(text) {
 export default function Search({ q }) {
   const [text, setText] = useState(q.get('q') || '');
   const [rows, setRows] = useState(null), [phs, setPhs] = useState({});
-  const [loc, setLoc] = useState(null), [gov, setGov] = useState(''), [busy, setBusy] = useState(false);
+  const [loc, setLoc] = useState(() => { const w = getWhere(); return w && w.lat != null ? { lat: w.lat, lng: w.lng } : null; }), [gov, setGov] = useState(''), [busy, setBusy] = useState(false);
   const cart = useCart();
   const [feat, setFeat] = useState(null);
   useEffect(() => { if (!q.get('q')) loadHome().then((h) => setFeat(h.products)).catch(() => {}); }, []);
@@ -32,7 +34,7 @@ export default function Search({ q }) {
   const run = async (e) => {
     e?.preventDefault();
     if (norm(text).length < 2) return toast(trs("اكتب حرفين على الأقل"));
-    setBusy(true);
+    setBusy(true); track('q', text);
     try {
       const ps = await findProducts(text), m = { ...phs };
       const ids = [...new Set(ps.map((p) => p.pharmacyId))];
@@ -47,7 +49,7 @@ export default function Search({ q }) {
   };
   useEffect(() => { if (text) run(); }, []);
   const myLoc = async () => {
-    try { setLoc(await getPos()); toast(trs("تم تحديد موقعك ✓")); }
+    try { const w = await askLocation(); setLoc({ lat: w.lat, lng: w.lng }); toast(trs("تم تحديد موقعك ✓")); }
     catch { toast(trs("اسمح بالوصول للموقع أو اختار المحافظة")); }
   };
 
@@ -62,7 +64,7 @@ export default function Search({ q }) {
       const d = loc && ph.lat != null ? km(loc, ph) : null;
       return { ph, items, d, stock: items.some((i) => i.stock > 0) };
     }).filter((g) => !gov || g.ph.governorate === gov)
-      .sort((a, b) => (b.stock - a.stock) || ((a.d ?? 1e9) - (b.d ?? 1e9)));
+      .sort((a, b) => (b.stock - a.stock) || ((a.d ?? 1e9) - (b.d ?? 1e9)) || ((getWhere()?.gov === b.ph.governorate) - (getWhere()?.gov === a.ph.governorate)));
   }, [rows, phs, loc, gov]);
 
   const add = (p) => addOffer(p, phs[p.pharmacyId]?.name);

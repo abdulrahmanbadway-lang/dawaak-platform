@@ -57,3 +57,20 @@
 @media(max-width:480px){.hd .ua .cb{display:none}.hd .ua .cb:nth-of-type(2){display:inline-flex}}
 .dn a{white-space:nowrap}
 @media(max-width:1280px){.hd .un{display:none}}
+
+/* ───── موقعك + المحافظات ───── */
+.wch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--sf);border:1.5px solid var(--ln);border-radius:16px;padding:8px 12px;margin:14px 0;color:var(--bl)}
+.wch .wt{flex:1 1 180px;min-width:0;color:var(--tx);font-size:13.5px}
+.wch .fi.sel{flex:1 1 100%}
+.govs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px;align-items:start}
+.gv{background:var(--sf);border:1.5px solid var(--ln);border-radius:16px;overflow:hidden}
+.gv.has{border-color:rgba(37,168,119,.5)}
+.gv.on{grid-column:1/-1;border-color:var(--bl2);box-shadow:var(--sh)}
+.gvh{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:none;border:0;padding:11px 14px;font:inherit;color:var(--tx);cursor:pointer;text-align:start}
+.gvh b{font-weight:800;font-size:15px}.gvh span{font-size:12px;color:var(--mu);white-space:nowrap}
+.gv.has .gvh span{color:var(--gr);font-weight:700}
+.gvc{padding:4px 14px 14px;display:grid;gap:10px}
+.cities{display:flex;flex-wrap:wrap;gap:7px}
+.cities a{border:1.5px solid var(--ln);background:var(--bg);border-radius:30px;padding:4px 13px;font-size:13px;font-weight:600;display:inline-flex;gap:6px;align-items:center}
+.cities a:hover,.cities a.on{border-color:var(--bl2);color:var(--bl);background:var(--mt)}
+.cities a i{font-style:normal;background:var(--gr);color:#fff;border-radius:20px;font-size:11px;padding:0 6px}

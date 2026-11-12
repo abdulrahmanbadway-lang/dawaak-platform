@@ -1,5 +1,6 @@
 // سلة الطلب (على الجهاز فقط، localStorage). الطلب بيتم من صيدلية واحدة بس.
 import { useEffect, useState } from 'react';
+import { track } from './demand.js';
 
 const KEY = 'dw_cart';
 const empty = () => ({ pid: null, pname: '', items: {} });
@@ -19,6 +20,7 @@ export function addToCart(p, ph) {
   if (cur >= p.stock) return 'max';
   const base = cart.pid === p.pharmacyId ? cart : { pid: p.pharmacyId, pname: ph || '', items: {} };
   save({ ...base, pname: ph || base.pname, items: { ...base.items, [p.id]: { ...snap, qty: cur + 1 } } });
+  track('c', p.name);
   return 'ok';
 }
 export const needsSwitch = (pharmacyId) => cart.pid && cart.pid !== pharmacyId && Object.keys(cart.items).length > 0;

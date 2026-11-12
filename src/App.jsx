@@ -20,6 +20,8 @@ import Drawer from './menu.jsx';
 import { useCart, cartCount } from './lib/cart.js';
 import { useFavs } from './lib/favs.js';
 import { usePresence } from './lib/presence.js';
+import Area from './pages/Area.jsx';
+import { autoLocate } from './lib/where.js';
 import { trs, useLang, setLang, applyLang } from './lib/i18n.js';
 import './ltr.css';
 
@@ -72,7 +74,7 @@ const Footer = () => (
     <div className="fbrand"><img src="/assets/full.png" alt={trs("دواك")} /><div><b>{trs("دواك · Dawaak")}</b><p className="mu sm2">{trs("منصة تربط صيدليات مصر: ابحث عن دواك، اعرف أقرب صيدلية، واطلبه.")}</p></div></div>
     <div className="fcol"><a href="#/search">{trs("ابحث عن دوا")}</a><a href="#/register?role=pharmacy">{trs("سجّل صيدليتك")}</a><a href="#/login">{trs("دخول")}</a></div>
     <div className="fcol sm2" dir="ltr"><span>Graduation Project 2027</span><span>Al-Gazeera Academy</span><span>Class of 2027 Graduates</span></div>
-  </div><div className="w fnote">{trs("المحتوى إرشادي ولا يغني عن استشارة الطبيب. في الطوارئ اتصل بالإسعاف 123. بنسجّل عنوان IP والصفحة الحالية لأغراض الأمان والإحصاء.")}</div></footer>
+  </div><div className="w fnote">{trs("المحتوى إرشادي ولا يغني عن استشارة الطبيب. في الطوارئ اتصل بالإسعاف 123. بنسجّل عنوان IP والصفحة الحالية والمنطقة التقريبية (لو سمحت بتحديد الموقع) لأغراض الأمان والإحصاء.")}</div></footer>
 );
 function Need({ role }) {
   return <div className="card center"><h2>{trs("محتاج تسجّل دخول")}</h2><p className="mu">{trs("الصفحة دي مخصصة")}{" "}{{ pharmacy: trs("للصيدليات"), admin: trs("لأدمن الموقع"), courier: trs("للمناديب (الصيدلية هي اللي بتعمل حسابك)") }[role] || trs("للمرضى")}.</p>
@@ -89,6 +91,7 @@ function Routes() {
   const lang = useLang();
   useEffect(() => { applyLang(path === '/admin'); }, [lang, path]);
   const { user, profile, loading } = useAuth();
+  useEffect(() => { autoLocate(); }, []);
   usePresence(!loading, user?.uid || null, path);
   if (!configured) return <><Header /><main><Setup /></main><Footer /></>;
   const role = profile?.role;
@@ -99,6 +102,7 @@ function Routes() {
   else if (path.startsWith('/p/')) page = <Product id={path.slice(3)} />;
   else if (path === '/cart') page = <Cart />;
   else if (path === '/brands') page = <Brands />;
+  else if (path === '/area') page = <Area key={q.toString()} q={q} />;
   else if (path === '/search') page = <Search key={q.toString()} q={q} />;
   else if (path === '/rx' || path === '/rx/new') page = role === 'patient' ? <PatientRx path={path} q={q} /> : <Need role="patient" />;
   else if (path === '/orders') page = role === 'patient' ? <PatientOrders /> : <Need role="patient" />;

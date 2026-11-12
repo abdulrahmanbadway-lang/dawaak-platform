@@ -4,6 +4,9 @@ import { Icon } from '../icons.jsx';
 import { ProdCard, PharmCard, goSearch } from '../components.jsx';
 import { trs } from '../lib/i18n.js';
 import { Banners, CatTiles, Rails, OffersRail, BrandsRow } from '../homeparts.jsx';
+import { WhereChip, GovSection } from '../areas.jsx';
+import { useWhere } from '../lib/where.js';
+import { km } from '../lib/geo.js';
 
 const FAQ = [
   ['هل دواك بديل للدكتور؟', 'لا. دواك بيساعدك تلاقي الدوا وتطلبه، لكن التشخيص والعلاج عند الطبيب. وفي الطوارئ اتصل بالإسعاف 123.'],
@@ -19,7 +22,8 @@ export default function Home() {
   const [cat, setCat] = useState(null);
   useEffect(() => { loadHome().then(setH).catch(() => setH({ pharmacies: [], products: [], stats: null })); loadCatalog().then(setCat).catch(() => {}); }, []);
   const prods = h?.products || [], shop = cat?.products || [], phs = h?.pharmacies || [];
-  const fp = prods[0], fph = phs.find((x) => x.open) || phs[0];
+  const w = useWhere();
+  const fp = prods[0], fph = (w && w.lat != null ? [...phs].filter((x) => x.open && x.lat != null).sort((a, b) => km(w, a) - km(w, b))[0] : null) || phs.find((x) => x.open) || phs[0];
   const chips = prods.slice(0, 5).map((p) => p.name); // أسماء حقيقية من المنتجات المتاحة فعلاً
   return (
     <div className="home">
@@ -33,11 +37,12 @@ export default function Home() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={trs("اسم الدوا أو المادة الفعالة… مثلاً بنادول")} />
             <button className="btn">{trs("ابحث")}</button>
           </form>
+          <WhereChip phs={cat?.pharmacies ? Object.values(cat.pharmacies) : phs} />
           {chips.length > 0 && <div className="qchips"><span className="mu sm2">{trs("متاح الآن:")}</span>{chips.map((c) => <button key={c} onClick={() => goSearch(c)}>{c}</button>)}</div>}
           {h?.stats && <div className="st">
             <div><b>{h.stats.pharmacies}</b><span>{trs("صيدلية على المنصة")}</span></div>
             <div><b>{h.stats.products}</b><span>{trs("منتج ومستلزم")}</span></div>
-            <div><b>{h.stats.governorates}</b><span>{trs("محافظات")}</span></div>
+            <div><b>{h.stats.governorates}</b><span>{trs("محافظات فيها صيدليات")}</span></div>
           </div>}
         </div>
         <div className="vis">
@@ -54,6 +59,8 @@ export default function Home() {
       {shop.length > 0 && <OffersRail products={shop} phs={cat?.pharmacies} />}
       {shop.length > 0 && <BrandsRow products={shop} />}
       {shop.length > 0 && <Rails products={shop} phs={cat?.pharmacies} />}
+
+      <GovSection phs={phs.length ? phs : Object.values(cat?.pharmacies || {})} />
 
       <section className="sec">
         <h2>{trs("إزاي")}{" "}<span className="gr">{trs("دواك")}</span> {trs("بيشتغل؟")}</h2>

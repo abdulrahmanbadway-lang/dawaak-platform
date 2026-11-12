@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, configured } from '../firebase.js';
+import { getWhere, coarse } from './where.js';
 
 const store = {
   get: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } },
@@ -72,8 +73,10 @@ export function usePresence(ready, uid, path) {
       if (dead || document.hidden) return;
       const net = await lookupIp();
       if (dead) return;
+      const w = getWhere(); // المنطقة التقريبية (لو المستخدم سمح بالموقع أو اختار محافظته)
       const d = {
         uid: uid || null, path: String(path || '/').slice(0, 80), since, lastSeen: serverTimestamp(), ...deviceInfo(),
+        ...(w?.gov ? { gov: w.gov } : {}), ...(w && w.lat != null ? { lat: coarse(w.lat), lng: coarse(w.lng) } : {}),
         ...(net.ip ? { ip: net.ip } : {}), ...(net.cc ? { cc: net.cc } : {}), ...(uid ? {} : { sid: id }),
       };
       setDoc(doc(db, 'presence', id), d, { merge: true }).catch(() => { /* الأدمن مش هيشوفنا بس؛ ده مش خطأ للمستخدم */ });
@@ -83,5 +86,5 @@ export function usePresence(ready, uid, path) {
     const vis = () => { if (!document.hidden) beat(); };
     document.addEventListener('visibilitychange', vis);
     return () => { dead = true; clearInterval(t); document.removeEventListener('visibilitychange', vis); };
-  }, [ready, uid, path]);
+  }, [ready, uid, path, getWhere()?.gov]);
 }
