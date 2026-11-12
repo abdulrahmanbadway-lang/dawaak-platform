@@ -15,15 +15,21 @@ const BUILTIN = [
 
 export function Banners({ list }) {
   const items = list && list.length ? list : BUILTIN;
-  const el = useRef(null), hold = useRef(false);
+  const el = useRef(null), hold = useRef(false), cur = useRef(0);
   const [i, setI] = useState(0);
-  const goTo = (n) => { const c = el.current?.children[n]; if (c) c.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' }); };
+  // نحرّك شريط الإعلانات أفقياً بس (scrollTo على الشريط نفسه). scrollIntoView كان بيسحب الصفحة كلها لفوق كل 5 ثواني.
+  const goTo = (n) => {
+    const e = el.current; if (!e) return;
+    const dir = getComputedStyle(e).direction === 'rtl' ? -1 : 1;
+    cur.current = n;
+    e.scrollTo({ left: dir * n * e.clientWidth, behavior: 'smooth' });
+  };
   useEffect(() => {
     if (items.length < 2) return undefined;
-    const t = setInterval(() => { if (!hold.current && !document.hidden) setI((x) => { const n = (x + 1) % items.length; goTo(n); return n; }); }, 5000);
+    const t = setInterval(() => { if (!hold.current && !document.hidden) { const n = (cur.current + 1) % items.length; goTo(n); setI(n); } }, 5000);
     return () => clearInterval(t);
   }, [items.length]);
-  const onScroll = () => { const e = el.current; if (!e) return; const n = Math.round(Math.abs(e.scrollLeft) / (e.clientWidth || 1)); if (n !== i && n >= 0 && n < items.length) setI(n); };
+  const onScroll = () => { const e = el.current; if (!e) return; const n = Math.round(Math.abs(e.scrollLeft) / (e.clientWidth || 1)); if (n >= 0 && n < items.length && n !== cur.current) { cur.current = n; setI(n); } };
   return (
     <section className="bnr" onMouseEnter={() => { hold.current = true; }} onMouseLeave={() => { hold.current = false; }} onTouchStart={() => { hold.current = true; }} onTouchEnd={() => { setTimeout(() => { hold.current = false; }, 4000); }}>
       <div className="bnr-t" ref={el} onScroll={onScroll}>
