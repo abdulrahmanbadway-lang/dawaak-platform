@@ -1,98 +1,130 @@
-// Dawaak demo data + Google REST helpers (بدون أي مكتبات خارجية)
+// بيانات العرض (دكاترة/صيدليات + مناديب + مرضى + منتجات بصور + طلبات + روشتات + بانرات) + أدوات Google REST (بدون مكتبات خارجية)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { PRODUCTS } from './data.mjs';
 
-export const PASSWORD = 'Dawaak@2027';
+// كلمة السر مش مكتوبة في الكود: من DW_PASSWORD لو حطيتها، أو بتتولّد عشوائي كل مرة وتتطبع في الآخر
+const ALPHA = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export const PASSWORD = process.env.DW_PASSWORD || Array.from(crypto.randomBytes(10), (b) => ALPHA[b % ALPHA.length]).join('') + '#7';
 const FS = process.env.DW_FS || 'https://firestore.googleapis.com';
 const IDT = process.env.DW_IDT || 'https://identitytoolkit.googleapis.com';
 const TOKEN_URL = process.env.DW_TOKEN_URL || 'https://oauth2.googleapis.com/token';
+const IMG = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'images.json'), 'utf8'));
 
 // نفس دالة التوحيد المستخدمة في التطبيق (src/lib/text.js)
 export const norm = (s = '') => s.toString().trim().toLowerCase()
-  .replace(/[\u064B-\u065F]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ');
+  .replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ');
 
+// الدكاترة (الصيادلة) أصحاب الصيدليات
 export const PHARMACIES = [
   { n: 'صيدلية النور', o: 'د. أحمد سمير', g: 'القاهرة', a: 'شارع قصر النيل، وسط البلد', lat: 30.0455, lng: 31.239, h: '9 ص – 12 م', v: true, open: true },
   { n: 'صيدلية الحياة', o: 'د. منى حسن', g: 'القاهرة', a: 'شارع عباس العقاد، مدينة نصر', lat: 30.0626, lng: 31.33, h: '24 ساعة', v: true, open: true },
   { n: 'صيدلية السلام', o: 'د. كريم عادل', g: 'الجيزة', a: 'شارع التحرير، الدقي', lat: 30.0381, lng: 31.2113, h: '8 ص – 1 ص', v: true, open: true },
-  { n: 'صيدلية الشفاء', o: 'د. هدى فاروق', g: 'الجيزة', a: 'شارع جامعة الدول العربية، المهندسين', lat: 30.0553, lng: 31.2002, h: '10 ص – 11 م', v: false, open: false },
+  { n: 'صيدلية الشفاء', o: 'د. هدى فاروق', g: 'الجيزة', a: 'شارع جامعة الدول العربية، المهندسين', lat: 30.0553, lng: 31.2002, h: '10 ص – 11 م', v: true, open: true },
   { n: 'صيدلية الأمل', o: 'د. طارق مصطفى', g: 'الإسكندرية', a: 'شارع سموحة الرئيسي', lat: 31.2156, lng: 29.9422, h: '9 ص – 2 ص', v: true, open: true },
   { n: 'صيدلية المحبة', o: 'د. نهى إبراهيم', g: 'الدقهلية', a: 'شارع الجلاء، المنصورة', lat: 31.0409, lng: 31.3785, h: '9 ص – 11 م', v: false, open: true },
   { n: 'صيدلية الرحمة', o: 'د. ياسر محمود', g: 'الغربية', a: 'شارع الجيش، طنطا', lat: 30.7865, lng: 31.0004, h: '24 ساعة', v: false, open: true },
-  { n: 'صيدلية الصعيد', o: 'د. سلمى عبد الله', g: 'أسيوط', a: 'شارع الجمهورية، أسيوط', lat: 27.1783, lng: 31.1859, h: '9 ص – 12 م', v: true, open: true },
+  { n: 'صيدلية الصعيد', o: 'د. سلمى عبد الله', g: 'أسيوط', a: 'شارع الجمهورية، أسيوط', lat: 27.1783, lng: 31.1859, h: '9 ص – 12 م', v: true, open: false },
 ];
-
-const P = (k, name, ing, dose, form, price, rx, desc, warn, kind, c1, c2, label = '', always = false) => ({ k, name, ing, dose, form, price, rx, desc, warn, kind, c1, c2, label, always });
-const NOTE = ' اتبع النشرة المرفقة أو إرشاد الصيدلي.';
-export const PRODUCTS = [
-  P('panadol-extra', 'بنادول إكسترا', 'Paracetamol + Caffeine', '500 ملجم + 65 ملجم', 'قرص', 48, false, 'مسكن للآلام وخافض للحرارة.' + NOTE, 'لا تجمع بينه وبين أي دواء آخر يحتوي على الباراسيتامول.', 'box', '#2F8F6F', '#0F5C5A', 'PANADOL', true),
-  P('paracetamol-500', 'باراسيتامول 500', 'Paracetamol', '500 ملجم', 'قرص', 18, false, 'خافض للحرارة ومسكن خفيف.' + NOTE, 'لا تتجاوز الجرعة القصوى اليومية المكتوبة في النشرة.', 'box', '#5aa9e6', '#1f6fb2', 'PARA', true),
-  P('brufen-400', 'بروفين 400', 'Ibuprofen', '400 ملجم', 'قرص', 36, false, 'مسكن ومضاد للالتهاب. يُؤخذ بعد الأكل.' + NOTE, 'يُتجنب لمرضى قرحة المعدة أو الحساسية من مضادات الالتهاب إلا بإرشاد الطبيب.', 'box', '#E8741A', '#b3500c', 'BRUFEN'),
-  P('vitamin-c', 'فيتامين سي 1000', 'Ascorbic acid', '1000 ملجم', 'قرص', 120, false, 'مكمل غذائي فوار (20 قرص).' + NOTE, 'لا يغني عن الغذاء المتوازن. استشر الصيدلي لو بتتناول أدوية أخرى.', 'bottle', '#FFB347', '#E8741A', '', true),
-  P('strepsils', 'ستربسيلز', 'Amylmetacresol + Dichlorobenzyl alcohol', 'أقراص مص', 'أخرى', 55, false, 'لتخفيف ألم وتهيج الحلق.' + NOTE, 'راجع الطبيب لو استمر ألم الحلق أكثر من أيام قليلة.', 'box', '#F29BB0', '#D6577A', 'STREP'),
-  P('voltaren-emulgel', 'فولتارين إميلجيل', 'Diclofenac diethylamine', '1%', 'كريم / مرهم', 95, false, 'جل موضعي لتخفيف آلام العضلات والمفاصل.' + NOTE, 'للاستخدام الخارجي فقط، وبعيداً عن الجروح والعين.', 'jar', '#7FB7E0', '#3F86B8', 'EMULGEL'),
-  P('antinal', 'أنتينال', 'Nifuroxazide', '200 ملجم', 'كبسولة', 42, false, 'يُستخدم في حالات الإسهال العارض.' + NOTE, 'مع الإسهال الشديد أو المستمر راجع الطبيب، وعوّض السوائل.', 'box', '#7A6FD0', '#4B3FA8', 'ANTINAL'),
-  P('claritine', 'كلاريتين', 'Loratadine', '10 ملجم', 'قرص', 60, false, 'لتخفيف أعراض الحساسية.' + NOTE, 'استشر الصيدلي أو الطبيب في الحمل والرضاعة.', 'box', '#35b6a1', '#17806f', 'CLARITINE'),
-  P('gaviscon', 'جافيسكون', 'Sodium alginate + Sodium bicarbonate + Calcium carbonate', '150 مل', 'شراب', 85, false, 'لتخفيف الحموضة وارتجاع المريء.' + NOTE, 'راجع الطبيب لو استمرت الأعراض.', 'bottle', '#8bd3a8', '#2c9964'),
-  P('otrivin', 'أوتريفين', 'Xylometazoline', '0.1%', 'بخاخ', 38, false, 'لتخفيف احتقان الأنف.' + NOTE, 'لا يُستخدم لفترات طويلة إلا بإرشاد الطبيب.', 'bottle', '#6fb7f2', '#2b7fc9'),
-  P('betadine', 'بيتادين', 'Povidone-iodine', '10%', 'أخرى', 30, false, 'مطهر موضعي للجروح السطحية.' + NOTE, 'للاستخدام الخارجي فقط. تجنبه لو عندك حساسية من اليود.', 'bottle', '#c9803a', '#8a4f14'),
-  P('thermometer', 'ميزان حرارة رقمي', '', '', 'أخرى', 70, false, 'ميزان حرارة رقمي سريع القراءة.', '', 'box', '#cfd8dc', '#78909c', 'TEMP'),
-  P('bp-monitor', 'جهاز قياس ضغط رقمي', '', '', 'أخرى', 850, false, 'جهاز رقمي لقياس ضغط الدم المنزلي.', 'القياس المنزلي لا يغني عن متابعة الطبيب.', 'box', '#4B5B63', '#222E34', '120/80'),
-  P('glucose-strips', 'شرائط قياس السكر', '', '50 شريط', 'أخرى', 230, false, 'شرائط لقياس السكر بالجهاز المناسب لها.', 'تأكد من تاريخ الصلاحية وتوافقها مع جهازك.', 'box', '#7A6FD0', '#4B3FA8', 'GLUCO'),
-  P('augmentin-1g', 'أوجمنتين 1 جم', 'Amoxicillin + Clavulanic acid', '1 جم', 'قرص', 135, true, 'مضاد حيوي يُصرف بروشتة طبية فقط.', 'يُستخدم تحت إشراف الطبيب وبالجرعة والمدة المحددة له.', 'box', '#2c8a52', '#14532d', 'AUGMENTIN'),
-  P('glucophage-500', 'جلوكوفاج 500', 'Metformin', '500 ملجم', 'قرص', 45, true, 'دواء لمرضى السكر يُصرف بروشتة طبية.', 'لا تغيّر الجرعة بدون الطبيب.', 'box', '#e57373', '#b23a3a', 'GLUCO-F'),
-  P('concor-5', 'كونكور 5', 'Bisoprolol', '5 ملجم', 'قرص', 62, true, 'دواء للقلب والضغط يُصرف بروشتة طبية.', 'لا يُوقف فجأة بدون الطبيب.', 'box', '#5C6BC0', '#303F9F', 'CONCOR'),
-  P('ventolin', 'فنتولين', 'Salbutamol', '100 مكج', 'بخاخ', 48, true, 'بخاخ لتوسيع الشعب الهوائية يُصرف بروشتة طبية.', 'في ضيق التنفس الشديد اطلب الإسعاف 123.', 'bottle', '#4FC3F7', '#0288D1'),
+// المناديب: اتنين لكل صيدلية من أول 4
+const CN = ['محمود السيد', 'إسلام جمال', 'أيمن رشاد', 'مصطفى عوض', 'حسام الدين', 'عمرو فتحي', 'باسم نبيل', 'خالد منصور'];
+export const COURIERS = CN.map((name, i) => ({ key: 'c' + (i + 1), name, ph: Math.floor(i / 2), phone: `0111000${String(2100 + i)}` }));
+// المرضى (بعناوين وإحداثيات قريبة من الصيدليات)
+export const PATIENTS = [
+  { key: 'p1', name: 'عبدالرحمن بدوي', phone: '01012345601', addr: '٥ شارع النيل، الدقي، الجيزة', lat: 30.0395, lng: 31.2124 },
+  { key: 'p2', name: 'سارة محمد', phone: '01012345602', addr: '١٢ شارع التحرير، وسط البلد، القاهرة', lat: 30.0489, lng: 31.2432 },
+  { key: 'p3', name: 'مصطفى كامل', phone: '01012345603', addr: '٢٠ شارع مصطفى النحاس، مدينة نصر', lat: 30.0645, lng: 31.3402 },
+  { key: 'p4', name: 'نورهان أحمد', phone: '01012345604', addr: '٨ شارع شهاب، المهندسين، الجيزة', lat: 30.0562, lng: 31.2065 },
+  { key: 'p5', name: 'يوسف إبراهيم', phone: '01012345605', addr: '٣ شارع عبد السلام عارف، سموحة، الإسكندرية', lat: 31.2171, lng: 29.9481 },
+  { key: 'p6', name: 'مريم خالد', phone: '01012345606', addr: '٢٢ شارع الجلاء، المنصورة', lat: 31.0432, lng: 31.3809 },
 ];
-
 export const ACCOUNTS = [
   ...PHARMACIES.map((p, i) => ({ key: 'ph' + (i + 1), email: `ph${i + 1}@dawaak.test`, name: p.o, role: 'pharmacy' })),
-  { key: 'patient', email: 'patient@dawaak.test', name: 'مريض تجريبي', role: 'patient' },
+  ...COURIERS.map((c) => ({ key: c.key, email: `${c.key}@dawaak.test`, name: c.name, role: 'courier' })),
+  ...PATIENTS.map((p) => ({ key: p.key, email: `${p.key}@dawaak.test`, name: p.name, role: 'patient' })),
 ];
+export const idOf = { prod: (i, k) => `seed-${i + 1}-${k}`, order: (n) => `seed-order-${n}`, rx: (n) => `seed-rx-${n}` };
+
+// طلبات العرض: [رقم، مريض، صيدلية(0-based)، حالة، من كام ساعة، [[منتج، كمية]]، مندوب(اختياري)]
+export const ORDERS = [
+  [1, 'p1', 0, 'new', 0.1, [['claritine', 1], ['vit-c-1000', 1]]],
+  [2, 'p2', 0, 'new', 0.3, [['panadol-extra', 2], ['strepsils', 1]]],
+  [3, 'p4', 3, 'new', 0.5, [['cetaphil-clean', 1], ['lrp-spf50', 1]]],
+  [4, 'p3', 1, 'preparing', 1.2, [['brufen-400', 1], ['betadine', 1], ['bandage', 1]]],
+  [5, 'p5', 4, 'preparing', 2, [['pampers-4', 1], ['cerelac', 2]]],
+  [6, 'p1', 0, 'out', 0.8, [['voltaren-emulgel', 1], ['panadol-extra', 1]], 'c1'],
+  [7, 'p4', 3, 'out', 0.6, [['centrum', 1], ['omega3', 1]], 'c7'],
+  [8, 'p2', 0, 'done', 26, [['gaviscon', 1], ['antinal', 1]], 'c2'],
+  [9, 'p3', 1, 'done', 50, [['omron-bp', 1]], 'c3'],
+  [10, 'p1', 0, 'done', 80, [['vit-c-1000', 2], ['centrum', 1]], 'c1'],
+  [11, 'p6', 5, 'done', 100, [['nivea-soft', 1], ['head-shoulders', 1]]],
+  [12, 'p4', 3, 'done', 130, [['sensodyne', 1], ['colgate', 2], ['oralb', 1]], 'c8'],
+  [13, 'p2', 0, 'done', 170, [['cetaphil-clean', 1], ['eucerin-cream', 1]], 'c2'],
+  [14, 'p3', 1, 'done', 220, [['accuchek', 1], ['thermo', 1]], 'c4'],
+  [15, 'p5', 4, 'cancelled', 30, [['zyrtec', 1]]],
+  [16, 'p1', 0, 'cancelled', 150, [['buscopan', 1]]],
+];
+const need = new Set(); // منتجات لازم تتوفر في الصيدلية عشان الطلبات
+ORDERS.forEach((o) => o[5].forEach(([k]) => need.add(o[2] + ':' + k)));
+['glucophage-500', 'concor-5', 'vit-d3', 'augmentin-1g', 'panadol-cold', 'otrivin', 'ventolin', 'zyrtec'].forEach((k) => { need.add('0:' + k); need.add('1:' + k); });
 
 function rng(seed) { // mulberry32
   let a = seed >>> 0;
   return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
-function pack(p) { // صورة SVG بسيطة للمنتج
-  const a = `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${p.c1}"/><stop offset="1" stop-color="${p.c2}"/></linearGradient></defs>`;
-  let b;
-  if (p.kind === 'bottle') b = `<rect x="85" y="46" width="30" height="18" rx="4" fill="${p.c2}"/><rect x="70" y="62" width="60" height="104" rx="12" fill="url(#g)"/><rect x="70" y="100" width="60" height="30" fill="#fff" opacity=".92"/>`;
-  else if (p.kind === 'jar') b = `<rect x="58" y="70" width="84" height="78" rx="12" fill="url(#g)"/><rect x="64" y="56" width="72" height="18" rx="6" fill="#fff" opacity=".95"/><rect x="58" y="96" width="84" height="26" fill="#fff" opacity=".92"/>`;
-  else b = `<rect x="58" y="44" width="84" height="122" rx="10" fill="url(#g)"/><rect x="58" y="96" width="84" height="32" fill="#fff" opacity=".92"/><text x="100" y="76" font-size="11" font-weight="bold" font-family="Arial" fill="#fff" text-anchor="middle">${p.label}</text>`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#E6F5F0"/>${a}<ellipse cx="100" cy="172" rx="48" ry="7" fill="#000" opacity=".12"/>${b}</svg>`;
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-}
+// حالات ثابتة للعرض: بنادول نفد في الدقي، وكمية قليلة في مدينة نصر
+const FORCE = { 'panadol-extra': { 1: 2, 2: 0 }, 'vit-c-1000': { 1: 0 } };
 
-// uid(key) -> uid الحقيقي للحساب. بيرجع قائمة مستندات {path, data}
-// حالات ثابتة للتجربة: بنادول نفد في الدقي (3) والأسكندرية (8=أسيوط)، وكمية قليلة في مدينة نصر (2)
-const FORCE = { 'panadol-extra': { 2: 2, 3: 0, 8: 0 }, 'vitamin-c': { 1: 0 } };
+// uid(key) -> uid الحقيقي للحساب. بيرجّع قائمة مستندات {path, data}
 export function buildDocs(uid) {
-  const docs = [], now = Date.now(), prods = {};
-  ACCOUNTS.forEach((a) => docs.push({ path: `users/${uid(a.key)}`, data: { name: a.name, email: a.email, role: a.role, createdAt: new Date(now), seed: true } }));
+  const docs = [], now = Date.now(), H = 36e5, D = (ms) => new Date(now - ms), inv = PHARMACIES.map(() => ({}));
+  const add = (p, data) => docs.push({ path: p, data });
+  ACCOUNTS.forEach((a) => add(`users/${uid(a.key)}`, { name: a.name, email: a.email, role: a.role, createdAt: D(20 * 864e5), seed: true }));
   PHARMACIES.forEach((p, i) => {
     const id = uid('ph' + (i + 1));
-    docs.push({ path: `pharmacies/${id}`, data: { name: p.n, ownerName: p.o, license: `EG-PH-${1001 + i}`, phone: `01000000${String(10 + i).padStart(3, '0')}`, governorate: p.g, address: p.a, hours: p.h, lat: p.lat, lng: p.lng, open: p.open, status: 'active', verified: p.v, createdAt: new Date(now), seed: true } });
-    const r = rng(101 + i * 7);
+    add(`pharmacies/${id}`, { name: p.n, ownerName: p.o, license: `EG-PH-${1001 + i}`, phone: `0100000${String(1010 + i)}`, governorate: p.g, address: p.a, hours: p.h, lat: p.lat, lng: p.lng, open: p.open, status: 'active', verified: p.v, createdAt: D(30 * 864e5), seed: true });
+    const r = rng(101 + i * 7), keep = i < 4 ? 0.5 : 0.3;
     PRODUCTS.forEach((pr) => {
-      if (!pr.always && r() > 0.78) return;
-      const price = Math.round(pr.price * (0.92 + r() * 0.2)), x = r();
-      let stock = x < 0.12 ? 0 : x < 0.3 ? 1 + Math.floor(r() * 4) : 5 + Math.floor(r() * 56);
-      if (FORCE[pr.k]?.[i + 1] !== undefined) stock = FORCE[pr.k][i + 1]; // حالات اختبار ثابتة
-      const d = { pharmacyId: id, name: pr.name, nameLower: norm(pr.name), ingredient: pr.ing, ingredientLower: norm(pr.ing), dose: pr.dose, form: pr.form, price, stock, rx: pr.rx, description: pr.desc, warnings: pr.warn, imageUrl: pack(pr), createdAt: new Date(now), updatedAt: new Date(now), seed: true };
-      docs.push({ path: `products/seed-${i + 1}-${pr.k}`, data: d });
-      if (i === 0) prods[pr.k] = { id: `seed-1-${pr.k}`, ...d };
+      const r1 = r(), r2 = r(), r3 = r(), r4 = r();
+      if (!need.has(i + ':' + pr.k) && r1 > keep) return;
+      const price = Math.max(5, Math.round(pr.price * (0.94 + r2 * 0.12)));
+      let stock = r3 < 0.1 ? 0 : r3 < 0.25 ? 1 + Math.floor(r4 * 4) : 5 + Math.floor(r4 * 56);
+      if (FORCE[pr.k]?.[i] !== undefined) stock = FORCE[pr.k][i];
+      if (need.has(i + ':' + pr.k) && stock < 5) stock = 20;
+      let oldPrice = 0;
+      if (pr.oldPrice && r1 < 0.8) { oldPrice = Math.round(price * pr.oldPrice / pr.price); if (oldPrice <= price) oldPrice = price + 5; }
+      const d = { pharmacyId: id, name: pr.name, nameLower: norm(pr.name), ingredient: pr.ing, ingredientLower: norm(pr.ing), dose: pr.dose, form: pr.form, price, stock, rx: pr.rx, description: pr.desc, warnings: pr.warn, imageUrl: IMG.products[pr.k], category: pr.category, sub: pr.sub, brand: pr.brand, ...(oldPrice ? { oldPrice } : {}), createdAt: D((3 + Math.floor(r4 * 25)) * 864e5), seed: true };
+      add(`products/${idOf.prod(i, pr.k)}`, d);
+      inv[i][pr.k] = { id: idOf.prod(i, pr.k), ...d };
     });
   });
-  const line = (k, qty) => ({ productId: prods[k].id, name: prods[k].name, dose: prods[k].dose || '', price: prods[k].price, qty });
-  const mk = (n, status, ago, items) => {
-    const total = items.reduce((s, x) => s + x.price * x.qty, 0), t = new Date(now - ago);
-    docs.push({ path: `orders/seed-order-${n}`, data: { patientId: uid('patient'), patientName: 'مريض تجريبي', phone: '01234567890', address: '٥ شارع النيل، الدقي، الجيزة', note: '', pharmacyId: uid('ph1'), pharmacyName: PHARMACIES[0].n, items, total, status, createdAt: t, updatedAt: t, seed: true } });
-  };
-  mk(1, 'done', 3 * 864e5, [line('panadol-extra', 2), line('vitamin-c', 1)]);
-  mk(2, 'preparing', 36e5, [line('brufen-400', 1), line('betadine', 1)]);
-  mk(3, 'new', 3e5, [line('claritine', 1)]);
+  COURIERS.forEach((c) => add(`couriers/${uid(c.key)}`, { pharmacyId: uid('ph' + (c.ph + 1)), name: c.name, phone: c.phone, active: true, createdAt: D(15 * 864e5) }));
+  const pat = Object.fromEntries(PATIENTS.map((p) => [p.key, p])), cour = Object.fromEntries(COURIERS.map((c) => [c.key, c]));
+  ORDERS.forEach(([n, pk, pi, status, hrs, lines, ck]) => {
+    const p = pat[pk], ph = PHARMACIES[pi], items = lines.map(([k, qty]) => ({ productId: inv[pi][k].id, name: inv[pi][k].name, dose: inv[pi][k].dose || '', price: inv[pi][k].price, qty }));
+    const total = items.reduce((s, x) => s + x.price * x.qty, 0), t = D(hrs * H), u = D(Math.max(0, hrs - 0.2) * H);
+    const c = ck && ['out', 'done'].includes(status) ? cour[ck] : null;
+    add(`orders/${idOf.order(n)}`, { patientId: uid(pk), patientName: p.name, phone: p.phone, address: p.addr, note: n % 3 === 0 ? 'من فضلك الاتصال قبل الوصول' : '', pharmacyId: uid('ph' + (pi + 1)), pharmacyName: ph.n, items, total, status, createdAt: t, updatedAt: u, dest: { lat: p.lat, lng: p.lng }, ...(c ? { courierId: uid(c.key), courierName: c.name, courierPhone: c.phone } : {}), seed: true });
+    if (status === 'out' && c) { // موقع المندوب الحالي: بين الصيدلية والمريض (simulate.mjs بيحرّكه)
+      const f = 0.45; add(`tracking/${idOf.order(n)}`, { courierId: uid(c.key), lat: +(ph.lat + (p.lat - ph.lat) * f).toFixed(6), lng: +(ph.lng + (p.lng - ph.lng) * f).toFixed(6), acc: 12, speed: 6.2, heading: 90, updatedAt: new Date(now) });
+    }
+  });
+  // الروشتات
+  const line = (pi, k, qty) => ({ productId: inv[pi][k].id, name: inv[pi][k].name, dose: inv[pi][k].dose || '', price: inv[pi][k].price, qty });
+  const rx = (n, pk, pi, status, hrs, img, note, extra = {}) => add(`prescriptions/${idOf.rx(n)}`, { patientId: uid(pk), patientName: pat[pk].name, pharmacyId: uid('ph' + (pi + 1)), pharmacyName: PHARMACIES[pi].n, phone: pat[pk].phone, address: pat[pk].addr, note, images: [IMG.rx[img]], dest: { lat: pat[pk].lat, lng: pat[pk].lng }, status, createdAt: D(hrs * H), updatedAt: D(Math.max(0, hrs - 0.3) * H), ...extra });
+  rx(1, 'p1', 0, 'pending', 0.4, 0, 'محتاج الأدوية دي النهاردة لو متاحة');
+  const q = [line(0, 'glucophage-500', 2), line(0, 'concor-5', 1), line(0, 'vit-d3', 1)];
+  rx(2, 'p2', 0, 'quoted', 3, 1, 'روشتة الباطنة', { quote: { items: q.map(({ productId, name, dose, price, qty }) => ({ productId, name, dose, price, qty })), total: q.reduce((s, x) => s + x.price * x.qty, 0), note: 'الأصناف كلها متوفرة، والتوصيل خلال ساعة.' } });
+  rx(3, 'p3', 1, 'need_info', 5, 2, '');
+  const msg = (n, m, who, uidk, text, ago) => add(`prescriptions/${idOf.rx(n)}/messages/seed-m${m}`, { senderId: uid(uidk), role: who, text, createdAt: D(ago * H) });
+  msg(3, 1, 'pharmacy', 'ph2', 'أهلاً، هل لديك حساسية من أي دواء؟ وهل الفنتولين للاستخدام الدائم؟', 4.5);
+  msg(3, 2, 'patient', 'p3', 'مفيش حساسية، والبخاخ للاستخدام عند اللزوم بس.', 4.2);
+  // البانرات (الأدمن بيعدلها من لوحة التحكم)
+  [['عروض الأسبوع', 'خصومات على أكتر من 40 صنف من الصيدليات القريبة منك', '#/shop?offers=1'], ['ارفع روشتتك', 'الصيدلي هيرد عليك بالأصناف والأسعار قبل ما تأكد', '#/rx/new'], ['كل احتياجات طفلك', 'حفاضات وأغذية ورعاية بتوصل لحد باب البيت', '#/shop']]
+    .forEach(([title, sub, link], i) => add(`banners/seed-b${i + 1}`, { title, sub, link, imageUrl: IMG.banners[i], order: i + 1, active: true, createdAt: D((3 - i) * 864e5) }));
   return docs;
 }
 
@@ -144,8 +176,8 @@ export async function findUser(tok, pid, email) {
 export async function deleteUser(tok, pid, localId) { return call(tok, pid, `${IDT}/v1/projects/${pid}/accounts:delete`, { localId }); }
 export async function commit(tok, pid, writes) {
   const root = `projects/${pid}/databases/(default)/documents`;
-  for (let i = 0; i < writes.length; i += 300) {
-    const chunk = writes.slice(i, i + 300).map((w) => w.del ? { delete: `${root}/${w.path}` }
+  for (let i = 0; i < writes.length; i += 100) {
+    const chunk = writes.slice(i, i + 100).map((w) => w.del ? { delete: `${root}/${w.path}` }
       : { update: { name: `${root}/${w.path}`, fields: Object.fromEntries(Object.entries(w.data).map(([k, v]) => [k, enc(v)])) } });
     const r = await call(tok, pid, `${FS}/v1/${root}:commit`, { writes: chunk });
     if (!r.ok) throw new Error(`تعذر الكتابة في Firestore: HTTP ${r.status} ${r.t.slice(0, 250)}` + (r.status === 404 ? '\nتأكد إنك عملت قاعدة Firestore (Create database) من Firebase Console.' : ''));
