@@ -12,6 +12,13 @@ import PatientRx from './pages/PatientRx.jsx';
 import Track from './pages/Track.jsx';
 import Courier from './pages/Courier.jsx';
 import Admin from './pages/Admin.jsx';
+import Shop from './pages/Shop.jsx';
+import Product from './pages/Product.jsx';
+import Cart from './pages/Cart.jsx';
+import Brands from './pages/Brands.jsx';
+import Drawer from './menu.jsx';
+import { useCart, cartCount } from './lib/cart.js';
+import { useFavs } from './lib/favs.js';
 import { usePresence } from './lib/presence.js';
 import { trs, useLang, setLang, applyLang } from './lib/i18n.js';
 import './ltr.css';
@@ -25,7 +32,7 @@ const navFor = (r) => {
   if (r === 'admin') return [['/', trs("الرئيسية"), 'home'], ['/admin', trs("لوحة التحكم"), 'shield']];
   if (r === 'pharmacy') return [['/', trs("الرئيسية"), 'home'], ['/pharmacy', trs("لوحة الصيدلية"), 'store']];
   if (r === 'courier') return [['/', trs("الرئيسية"), 'home'], ['/courier', trs("توصيلاتي"), 'truck']];
-  const l = [['/', trs("الرئيسية"), 'home'], ['/search', trs("ابحث عن دوا"), 'search'], [r ? '/rx' : '/rx/new', r ? trs("روشتاتي") : trs("ارفع روشتة"), 'rx']];
+  const l = [['/', trs("الرئيسية"), 'home'], ['/shop', trs("المتجر"), 'box'], ['/search', trs("ابحث عن دوا"), 'search'], [r ? '/rx' : '/rx/new', r ? trs("روشتاتي") : trs("ارفع روشتة"), 'rx']];
   if (r === 'patient') l.push(['/orders', trs("طلباتي"), 'bag']);
   return l;
 };
@@ -35,20 +42,27 @@ function Header() {
   const { path } = useRoute();
   const [theme, toggle] = useTheme();
   const lang = useLang();
-  const r = profile?.role, links = navFor(r);
+  const [menu, setMenu] = useState(false);
+  const cart = useCart(), favs = useFavs(), cnt = cartCount(cart);
+  const r = profile?.role, links = navFor(r), shopper = !r || r === 'patient';
+  useEffect(() => { const f = () => setMenu(false); addEventListener('hashchange', f); return () => removeEventListener('hashchange', f); }, []);
   return (
     <>
       <div className="top" dir="ltr">Graduation Project 2027 · Al-Gazeera Academy · Class of 2027 Graduates</div>
       <header className="hd"><div className="w hdi">
+        <button className="ic mn" onClick={() => setMenu(true)} aria-label={trs("القائمة")}><Icon n="menu" s={20} /></button>
         <a href="#/" className="brand"><img src="/assets/mark.png" alt="" /><img className="wd" src="/assets/word.png" alt={trs("دواك")} /></a>
         <nav className="dn" aria-label={trs("التنقل الرئيسي")}>{links.map(([h, l, ic]) => <a key={h} href={'#' + h} className={isOn(path, h) ? 'on' : ''}><Icon n={ic} s={17} />{l}</a>)}</nav>
         <div className="ua">
           <button className="ic lng" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')} aria-label={lang === 'en' ? 'التبديل إلى العربية' : 'Switch to English'} title={lang === 'en' ? 'العربية' : 'English'}>{lang === 'en' ? 'ع' : 'EN'}</button>
+          {shopper && <a className="ic cb" href="#/shop?fav=1" aria-label={trs("المفضلة")}><Icon n="heart" s={18} />{favs.length > 0 && <i>{favs.length}</i>}</a>}
+          {shopper && <a className="ic cb" href="#/cart" aria-label={trs("السلة")}><Icon n="cart" s={18} />{cnt > 0 && <i>{cnt}</i>}</a>}
           <button className="ic" onClick={toggle} aria-label={trs("الوضع الليلي")}><Icon n={theme === 'dark' ? 'sun' : 'moon'} s={18} /></button>
           {profile ? <><span className="av">{profile.name[0]}</span><span className="un">{profile.name}</span><button className="ic" aria-label={trs("خروج")} title={trs("خروج")} onClick={() => { logout(); go('/'); }}><Icon n="logout" s={18} /></button></>
             : <><a className="btn o sm" href="#/login">{trs("دخول")}</a><a className="btn sm" href="#/register">{trs("حساب جديد")}</a></>}
         </div>
       </div></header>
+      {menu && <Drawer onClose={() => setMenu(false)} role={r} />}
       <nav className="bn" aria-label={trs("التنقل")}>{links.map(([h, l, ic]) => <a key={h} href={'#' + h} className={isOn(path, h) ? 'on' : ''}><Icon n={ic} s={22} /><span>{l}</span></a>)}</nav>
     </>
   );
@@ -81,6 +95,10 @@ function Routes() {
   let page;
   if (loading) page = <div className="center">{trs("جاري التحميل…")}</div>;
   else if (path === '/login' || path === '/register') page = <AuthPage mode={path.slice(1)} q={q} />;
+  else if (path === '/shop') page = <Shop key={q.toString()} q={q} />;
+  else if (path.startsWith('/p/')) page = <Product id={path.slice(3)} />;
+  else if (path === '/cart') page = <Cart />;
+  else if (path === '/brands') page = <Brands />;
   else if (path === '/search') page = <Search key={q.toString()} q={q} />;
   else if (path === '/rx' || path === '/rx/new') page = role === 'patient' ? <PatientRx path={path} q={q} /> : <Need role="patient" />;
   else if (path === '/orders') page = role === 'patient' ? <PatientOrders /> : <Need role="patient" />;

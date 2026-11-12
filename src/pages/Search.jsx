@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, query, where, limit, getDocs, getDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { useAuth } from '../auth.jsx';
-import { go } from '../router.js';
 import { Icon } from '../icons.jsx';
 import { GOV } from '../lib/gov.js';
 import { km, fmtKm, getPos } from '../lib/geo.js';
 import { norm } from '../lib/text.js';
-import { toast, Badge, Field } from '../ui.jsx';
+import { toast, Badge } from '../ui.jsx';
+import { useCart, setQty } from '../lib/cart.js';
+import { addOffer } from '../shopparts.jsx';
 import { loadHome } from '../lib/featured.js';
 import { ProdCard } from '../components.jsx';
 import { trs, tdata } from '../lib/i18n.js';
@@ -22,12 +22,10 @@ async function findProducts(text) {
 }
 
 export default function Search({ q }) {
-  const { user, profile } = useAuth();
   const [text, setText] = useState(q.get('q') || '');
   const [rows, setRows] = useState(null), [phs, setPhs] = useState({});
   const [loc, setLoc] = useState(null), [gov, setGov] = useState(''), [busy, setBusy] = useState(false);
-  const [cart, setCart] = useState({ pid: null, items: {} });
-  const [co, setCo] = useState(null);
+  const cart = useCart();
   const [feat, setFeat] = useState(null);
   useEffect(() => { if (!q.get('q')) loadHome().then((h) => setFeat(h.products)).catch(() => {}); }, []);
 
@@ -67,43 +65,9 @@ export default function Search({ q }) {
       .sort((a, b) => (b.stock - a.stock) || ((a.d ?? 1e9) - (b.d ?? 1e9)));
   }, [rows, phs, loc, gov]);
 
-  const add = (p) => {
-    if (cart.pid && cart.pid !== p.pharmacyId && Object.keys(cart.items).length) {
-      if (!confirm(trs("الطلب بيكون من صيدلية واحدة بس. تفريغ السلة الحالية وإضافة المنتج ده؟"))) return;
-      setCart({ pid: p.pharmacyId, items: { [p.id]: { p, qty: 1 } } });
-      return;
-    }
-    const cur = cart.items[p.id]?.qty || 0;
-    if (cur >= p.stock) return toast(trs("الكمية المتاحة ") + p.stock + trs(" فقط"));
-    setCart({ pid: p.pharmacyId, items: { ...cart.items, [p.id]: { p, qty: cur + 1 } } });
-  };
-  const rem = (id) => {
-    const it = { ...cart.items }; const c = it[id];
-    if (c.qty <= 1) delete it[id]; else it[id] = { ...c, qty: c.qty - 1 };
-    setCart({ pid: Object.keys(it).length ? cart.pid : null, items: it });
-  };
-  const list = Object.values(cart.items);
-  const total = list.reduce((s, x) => s + x.p.price * x.qty, 0);
-
-  const startCheckout = () => {
-    if (!user) { toast(trs("سجّل دخولك الأول عشان تكمل الطلب")); return go('/login'); }
-    if (profile?.role !== 'patient') return toast(trs("الطلب متاح لحسابات المرضى فقط"));
-    setCo({ phone: '', address: '', note: '', dest: null });
-  };
-  const send = async (e) => {
-    e.preventDefault();
-    if (co.phone.trim().length < 8 || co.address.trim().length < 5) return toast(trs("اكتب رقم الموبايل والعنوان بالتفصيل"));
-    try {
-      await addDoc(collection(db, 'orders'), {
-        patientId: user.uid, patientName: profile.name, phone: co.phone.trim(), address: co.address.trim(), note: co.note.trim(),
-        pharmacyId: cart.pid, pharmacyName: phs[cart.pid].name,
-        items: list.map((x) => ({ productId: x.p.id, name: x.p.name, dose: x.p.dose || '', price: x.p.price, qty: x.qty })),
-        ...(co.dest ? { dest: co.dest } : {}),
-        total, status: 'new', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-      });
-      toast(trs("تم إرسال طلبك للصيدلية ✓")); setCart({ pid: null, items: {} }); setCo(null); go('/orders');
-    } catch (x) { toast(trs("تعذر إرسال الطلب: ") + x.message); }
-  };
+  const add = (p) => addOffer(p, phs[p.pharmacyId]?.name);
+  const inCart = (p) => (cart.pid === p.pharmacyId ? cart.items[p.id]?.qty || 0 : 0);
+  const n = Object.values(cart.items).reduce((a, x) => a + x.qty, 0), total = Object.values(cart.items).reduce((a, x) => a + x.price * x.qty, 0);
 
   return (
     <div>
@@ -117,7 +81,7 @@ export default function Search({ q }) {
         <button className="btn o sm" id="geo" onClick={myLoc}><Icon n="pin" s={16} /> {loc ? trs("تم تحديد موقعك") : trs("استخدم موقعي")}</button>
         <select className="fi sel" value={gov} onChange={(e) => setGov(e.target.value)}><option value="">{trs("كل المحافظات")}</option>{GOV.map((g) => <option key={g} value={g}>{trs(g)}</option>)}</select>
       </div>
-      {!rows && feat && feat.length > 0 && (() => { const cat = q.get('cat') || '', list = cat ? feat.filter((p) => p.category === cat) : feat; return <><h2 className="mt">{cat ? trs(cat) : trs("منتجات متاحة الآن")}</h2>{cat && <a className="go" href="#/search">{trs("عرض كل الأقسام ◂")}</a>}{list.length ? <div className="pgrid">{list.map((p) => <ProdCard key={p.name} p={p} />)}</div> : <div className="card center"><p className="mu">{trs("لسه مفيش منتجات في القسم ده.")}</p></div>}</>; })()}
+      {!rows && feat && feat.length > 0 && <><div className="row between wrap"><h2 className="mt">{trs("منتجات متاحة الآن")}</h2><a className="go" href="#/shop">{trs("تصفّح كل المنتجات ◂")}</a></div><div className="pgrid">{feat.map((p) => <ProdCard key={p.name} p={p} />)}</div></>}
       {groups && !groups.length && <div className="card center"><h3>{trs("مفيش نتايج")}</h3><p className="mu">{trs("جرّب اسم تاني أو المادة الفعالة، أو غيّر المحافظة.")}</p></div>}
       {groups?.map(({ ph, items, d, stock }) => (
         <div className="card ph" key={ph.id}>
@@ -138,22 +102,14 @@ export default function Search({ q }) {
               </div>
               <div className="pr"><b>{p.price} {trs("ج.م")}</b>
                 {p.stock > 0 ? (p.rx ? <a className="go" href={'#/rx/new?ph=' + p.pharmacyId}>{trs("ارفع روشتة ◂")}</a> :
-                  cart.items[p.id] ? <div className="qty"><button onClick={() => rem(p.id)}>−</button><span>{cart.items[p.id].qty}</span><button onClick={() => add(p)}>＋</button></div>
+                  inCart(p) ? <div className="qty"><button onClick={() => setQty(p.id, inCart(p) - 1)}>−</button><span>{inCart(p)}</span><button onClick={() => add(p)}>＋</button></div>
                     : <button className="btn sm" onClick={() => add(p)}>{trs("أضف للطلب")}</button>)
                   : <Badge c="rd">{trs("نفد")}</Badge>}</div>
             </div>
           ))}
         </div>
       ))}
-      {list.length > 0 && <div className="cartbar"><span>{list.reduce((s, x) => s + x.qty, 0)} {trs("عنصر ·")}{" "}<b>{total} {trs("ج.م")}</b> · {phs[cart.pid]?.name}</span><button className="btn g" onClick={startCheckout}>{trs("إتمام الطلب")}</button></div>}
-      {co && <div className="mo" onClick={(e) => e.target === e.currentTarget && setCo(null)}><form className="card narrow" onSubmit={send}>
-        <h2>{trs("إتمام الطلب")}</h2><p className="mu">{trs("من")}{" "}{phs[cart.pid].name} {trs("· الإجمالي")}{" "}<b>{total} {trs("ج.م")}</b> {trs("(الدفع عند الاستلام)")}</p>
-        <Field label={trs("رقم الموبايل")} name="phone" type="tel" v={co.phone} on={(v) => setCo({ ...co, phone: v })} dir="ltr" />
-        <Field label={trs("عنوان التوصيل")} name="address" v={co.address} on={(v) => setCo({ ...co, address: v })} />
-        <button type="button" className="btn o sm" onClick={async () => { try { const p = await getPos(); setCo((c) => ({ ...c, dest: { lat: +p.lat.toFixed(6), lng: +p.lng.toFixed(6) } })); toast(trs("تم تحديد موقع التوصيل ✓")); } catch { toast(trs("اسمح بالوصول للموقع")); } }}><Icon n="pin" s={16} /> {co.dest ? trs("تم تحديد موقع التوصيل ✓") : trs("حدد موقع التوصيل (عشان تتابع المندوب)")}</button>
-        <Field label={trs("ملاحظات (اختياري)")} name="note" type="textarea" v={co.note} on={(v) => setCo({ ...co, note: v })} />
-        <div className="row g"><button className="btn g" style={{ flex: 1 }}>{trs("تأكيد الطلب")}</button><button type="button" className="btn o" onClick={() => setCo(null)}>{trs("إلغاء")}</button></div>
-      </form></div>}
+      {n > 0 && <div className="cartbar"><span>{n} {trs("عنصر ·")}{" "}<b>{total} {trs("ج.م")}</b> · {cart.pname}</span><a className="btn g" href="#/cart">{trs("عرض السلة")}</a></div>}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { loadHome } from '../lib/featured.js';
+import { loadHome, loadCatalog } from '../lib/featured.js';
 import { Icon } from '../icons.jsx';
 import { ProdCard, PharmCard, goSearch } from '../components.jsx';
 import { trs } from '../lib/i18n.js';
-import { Banners, CatTiles, Rails } from '../homeparts.jsx';
+import { Banners, CatTiles, Rails, OffersRail, BrandsRow } from '../homeparts.jsx';
 
 const FAQ = [
   ['هل دواك بديل للدكتور؟', 'لا. دواك بيساعدك تلاقي الدوا وتطلبه، لكن التشخيص والعلاج عند الطبيب. وفي الطوارئ اتصل بالإسعاف 123.'],
@@ -16,8 +16,9 @@ const STEPS = [['search', 'ابحث عن الدوا', 'اكتب اسم الدو�
 export default function Home() {
   const [q, setQ] = useState('');
   const [h, setH] = useState(null);
-  useEffect(() => { loadHome().then(setH).catch(() => setH({ pharmacies: [], products: [], stats: null })); }, []);
-  const prods = h?.products || [], phs = h?.pharmacies || [];
+  const [cat, setCat] = useState(null);
+  useEffect(() => { loadHome().then(setH).catch(() => setH({ pharmacies: [], products: [], stats: null })); loadCatalog().then(setCat).catch(() => {}); }, []);
+  const prods = h?.products || [], shop = cat?.products || [], phs = h?.pharmacies || [];
   const fp = prods[0], fph = phs.find((x) => x.open) || phs[0];
   const chips = prods.slice(0, 5).map((p) => p.name); // أسماء حقيقية من المنتجات المتاحة فعلاً
   return (
@@ -49,8 +50,10 @@ export default function Home() {
       </section>
 
       <Banners list={h?.banners} />
-      {prods.length > 0 && <CatTiles products={prods} />}
-      {prods.length > 0 && <Rails products={prods} />}
+      {shop.length > 0 && <CatTiles products={shop} />}
+      {shop.length > 0 && <OffersRail products={shop} phs={cat?.pharmacies} />}
+      {shop.length > 0 && <BrandsRow products={shop} />}
+      {shop.length > 0 && <Rails products={shop} phs={cat?.pharmacies} />}
 
       <section className="sec">
         <h2>{trs("إزاي")}{" "}<span className="gr">{trs("دواك")}</span> {trs("بيشتغل؟")}</h2>
@@ -58,7 +61,7 @@ export default function Home() {
       </section>
 
       <section className="sec">
-        <div className="sech"><h2>{trs("منتجات")}{" "}<span className="gr">{trs("متاحة الآن")}</span></h2><a className="go" href="#/search">{trs("تصفح كل المنتجات ◂")}</a></div>
+        <div className="sech"><h2>{trs("منتجات")}{" "}<span className="gr">{trs("متاحة الآن")}</span></h2><a className="go" href="#/shop">{trs("تصفح كل المنتجات ◂")}</a></div>
         {h === null && <div className="pgrid">{[1, 2, 3, 4].map((i) => <div className="pcard sk" key={i}></div>)}</div>}
         {h && !prods.length && <div className="card center"><h3>{trs("لسه مفيش منتجات")}</h3><p className="mu">{trs("أول ما الصيدليات تضيف أدويتها هتظهر هنا.")}</p><a className="btn" href="#/register?role=pharmacy">{trs("سجّل صيدليتك")}</a></div>}
         {prods.length > 0 && <div className="pgrid">{prods.slice(0, 8).map((p) => <ProdCard key={p.name} p={p} />)}</div>}

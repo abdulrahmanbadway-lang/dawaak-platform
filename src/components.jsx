@@ -2,7 +2,7 @@ import { go } from './router.js';
 import { Badge } from './ui.jsx';
 import { Icon } from './icons.jsx';
 import './shop.css';
-import { trs, tdata } from './lib/i18n.js';
+import { trs, tdata, pharmWord } from './lib/i18n.js';
 
 export function ProdCard({ p }) {
   return (
@@ -10,7 +10,7 @@ export function ProdCard({ p }) {
       <div className="pimg">{p.imageUrl ? <img src={p.imageUrl} alt={p.name} loading="lazy" /> : <span className="pimg-ph"><Icon n="pill" s={46} /></span>}</div>
       <h3>{p.name}</h3>
       <p className="mu sm2">{[tdata(p.dose), tdata(p.form)].filter(Boolean).join(' · ')}</p>
-      <div className="prow"><b className="price">{p.min === p.max ? p.min : trs("من ") + p.min} <small>{trs("ج.م")}</small></b><Badge c="ok">{trs("متاح في")}{" "}{p.count} {p.count > 2 ? trs("صيدليات") : trs("صيدلية")}</Badge></div>
+      <div className="prow"><b className="price">{p.min === p.max ? p.min : trs("من ") + p.min} <small>{trs("ج.م")}</small></b><Badge c="ok">{trs("متاح في")}{" "}{p.count} {pharmWord(p.count)}</Badge></div>
       <span className="go">{trs("اعرف أقرب صيدلية ◂")}</span>
     </a>
   );

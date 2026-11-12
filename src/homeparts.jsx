@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
-import { CATS, catHue } from './lib/cats.js';
+import { CATS, catHue, resolveCat } from './lib/cats.js';
+import { PCard } from './shopparts.jsx';
 import { trs, tdata } from './lib/i18n.js';
 import './home.css';
 
@@ -44,18 +45,18 @@ export function Banners({ list }) {
   );
 }
 
-const catOf = (p) => (CATS.includes(p.category) ? p.category : 'أخرى');
+const catOf = (p) => resolveCat(p)[0] || 'أخرى';
 
 export function CatTiles({ products }) {
   const by = {};
   products.forEach((p) => { (by[catOf(p)] = by[catOf(p)] || []).push(p); });
-  const cats = CATS.filter((c) => by[c]);
+  const cats = [...CATS, 'أخرى'].filter((c) => by[c]);
   if (!cats.length) return null;
   return (
     <section className="sec">
       <div className="sech"><h2>{trs("الأقسام")}</h2></div>
       <div className="cats">{cats.map((c) => { const im = by[c].find((p) => p.imageUrl); return (
-        <a key={c} className="cat" href={'#/search?cat=' + encodeURIComponent(c)} style={{ '--h': catHue(c) }}>
+        <a key={c} className="cat" href={c === 'أخرى' ? '#/shop' : '#/shop?cat=' + encodeURIComponent(c)} style={{ '--h': catHue(c) }}>
           <span className="cat-i">{im ? <img src={im.imageUrl} alt="" loading="lazy" /> : <Icon n="pill" s={30} />}</span>
           <b>{trs(c)}</b><small>{by[c].length}</small>
         </a>); })}</div>
@@ -63,20 +64,37 @@ export function CatTiles({ products }) {
   );
 }
 
-export function Rails({ products }) {
+export function Rails({ products, phs }) {
   const by = {};
   products.forEach((p) => { (by[catOf(p)] = by[catOf(p)] || []).push(p); });
-  return CATS.filter((c) => by[c]).map((c) => (
+  return [...CATS, 'أخرى'].filter((c) => by[c]).map((c) => (
     <section className="sec rl" key={c}>
-      <div className="sech"><h2>{trs(c)}</h2><a className="go btn o sm" href={'#/search?cat=' + encodeURIComponent(c)}>{trs("عرض الكل")}</a></div>
-      <div className="rail">{by[c].slice(0, 14).map((p) => (
-        <a className="rc" key={p.name} href={'#/search?q=' + encodeURIComponent(p.name)}>
-          <span className="rc-i">{p.imageUrl ? <img src={p.imageUrl} alt={p.name} loading="lazy" /> : <Icon n="pill" s={40} />}</span>
-          <b className="rc-n">{p.name}</b>
-          <small className="mu">{[tdata(p.dose), tdata(p.form)].filter(Boolean).join(' · ')}</small>
-          <span className="rc-p">{p.min === p.max ? p.min : trs("من ") + p.min} <small>{trs("ج.م")}</small></span>
-          <small className="mu">{trs("متاح في")}{" "}{p.count} {p.count > 2 ? trs("صيدليات") : trs("صيدلية")}</small>
-        </a>))}</div>
+      <div className="sech"><h2>{trs(c)}</h2><a className="go btn o sm" href={c === 'أخرى' ? '#/shop' : '#/shop?cat=' + encodeURIComponent(c)}>{trs("عرض الكل")}</a></div>
+      <div className="rail">{by[c].slice(0, 14).map((p) => <PCard key={p.key || p.name} g={p} phs={phs} />)}</div>
     </section>
   ));
+}
+
+export function OffersRail({ products, phs }) {
+  const l = products.filter((p) => p.off > 0).sort((a, b) => b.off - a.off).slice(0, 14);
+  if (!l.length) return null;
+  return (
+    <section className="sec rl">
+      <div className="sech"><h2>{trs("العروض")}</h2><a className="go btn o sm" href="#/shop?offers=1">{trs("عرض الكل")}</a></div>
+      <div className="rail">{l.map((p) => <PCard key={p.key} g={p} phs={phs} />)}</div>
+    </section>
+  );
+}
+
+export function BrandsRow({ products }) {
+  const m = {};
+  products.forEach((p) => { if (p.brand) m[p.brand] = (m[p.brand] || 0) + 1; });
+  const l = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 14);
+  if (!l.length) return null;
+  return (
+    <section className="sec rl">
+      <div className="sech"><h2>{trs("الماركات")}</h2><a className="go btn o sm" href="#/brands">{trs("عرض الكل")}</a></div>
+      <div className="rail brails">{l.map(([b, n]) => <a key={b} className="brand-t" href={'#/shop?brand=' + encodeURIComponent(b)}><span>{b.slice(0, 2).toUpperCase()}</span><b>{b}</b><small>{n} {trs("منتج")}</small></a>)}</div>
+    </section>
+  );
 }

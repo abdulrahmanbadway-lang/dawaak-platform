@@ -63,11 +63,19 @@ service cloud.firestore {
         let u = request.resource.data.get('imageUrl', '');
         return u is string && u.size() <= 200000 && (u == '' || u.matches('data:image/jpeg;base64,.*') || u.matches('https://.*'));
       }
+      // حقول التصنيف والماركة والخصم: نصوص قصيرة، والسعر قبل الخصم (لو موجود) لازم يكون أكبر من السعر
+      function metaOk() {
+        let d = request.resource.data;
+        return d.get('category', '') is string && d.get('category', '').size() <= 60
+          && d.get('sub', '') is string && d.get('sub', '').size() <= 60
+          && d.get('brand', '') is string && d.get('brand', '').size() <= 60
+          && d.get('oldPrice', 0) is number && (d.get('oldPrice', 0) == 0 || d.get('oldPrice', 0) > d.price);
+      }
       allow read: if true;
       allow create: if active() && request.resource.data.pharmacyId == request.auth.uid
-        && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid)) && imgUrlOk();
+        && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid)) && imgUrlOk() && metaOk();
       allow update: if active() && resource.data.pharmacyId == request.auth.uid
-        && request.resource.data.pharmacyId == resource.data.pharmacyId && imgUrlOk();
+        && request.resource.data.pharmacyId == resource.data.pharmacyId && imgUrlOk() && metaOk();
       // صاحب الصيدلية يحذف منتجه، والأدمن يحذف أي منتج
       allow delete: if (active() && resource.data.pharmacyId == request.auth.uid) || isAdmin();
     }

@@ -52,3 +52,6 @@ export function tdata(s) {
   for (const [a, b] of UNITS) o = o.replace(new RegExp(NB + a + NA, 'g'), b);
   return o;
 }
+
+// "صيدلية / صيدليات" بحسب العدد (عربي: 3–10 جمع، غير كده مفرد · إنجليزي: 1 مفرد وغير كده جمع)
+export const pharmWord = (n) => (LANG === 'en' ? trs(n === 1 ? 'صيدلية' : 'صيدليات') : trs(n >= 3 && n <= 10 ? 'صيدليات' : 'صيدلية'));
