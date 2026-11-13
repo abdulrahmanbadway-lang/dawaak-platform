@@ -92,26 +92,21 @@
 .docview img{width:100%;max-height:200px;object-fit:contain;background:#fff;border:1px solid var(--ln);border-radius:10px;cursor:zoom-in}
 .docview figure.zoom{grid-column:1/-1}.docview figure.zoom img{max-height:none;cursor:zoom-out}
 
-/* عرض سينمائي: موقعك + الصيدليات القريبة داخل شريط الإعلانات */
-.adv-loc,.adv-ph{min-height:260px;background:#06202f;isolation:isolate}
-.adv-loc{background:radial-gradient(120% 140% at 85% 20%,#12709b 0,#0a3b59 45%,#05182a 100%)}
-.adv-ph{background:radial-gradient(110% 150% at 10% 0,#1b9a73 0,#0b4a63 48%,#051d30 100%);background-size:140% 140%;animation:kb 14s ease-in-out infinite alternate}
-.adv-ph.shut{background:radial-gradient(110% 150% at 10% 0,#6b7a86 0,#2d4254 50%,#0a1a28 100%)}
-@keyframes kb{from{background-position:0 0}to{background-position:100% 100%}}
-.adv .kick{font-size:12.5px;font-weight:800;letter-spacing:.4px;opacity:.85;background:rgba(255,255,255,.14);align-self:flex-start;border-radius:30px;padding:4px 12px}
-.radar{position:relative;flex:none;width:130px;height:130px;display:grid;place-items:center;color:#fff}
-.radar i{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,.55);animation:rd 3s ease-out infinite;opacity:0}
-.radar i:nth-child(2){animation-delay:1s}.radar i:nth-child(3){animation-delay:2s}
-.adv .radar .ic-svg{display:block!important;position:relative!important;opacity:1!important;background:#25A877;border-radius:50%;padding:14px;width:64px;height:64px;box-shadow:0 0 0 6px rgba(37,168,119,.3)}
-@keyframes rd{0%{transform:scale(.35);opacity:.9}100%{transform:scale(1.15);opacity:0}}
-.adv-ph .rk{position:absolute;inset-inline-start:26px;top:-6px;font-size:clamp(90px,16vw,170px);font-weight:900;line-height:1;color:rgba(255,255,255,.07);z-index:-1;font-variant-numeric:tabular-nums}
-.adv-ph .adv-tx b{font-size:clamp(26px,4.4vw,44px)}
-.adv-ph .adv-tx span{max-width:520px}
-.adv .chs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.adv .chs em{font-style:normal;font-weight:800;font-size:13.5px;border-radius:30px;padding:7px 16px;background:#fff;color:var(--bl)}
-.adv .chs em.ok{background:#25A877;color:#fff}.adv .chs em.rd{background:#c9544d;color:#fff}
-.adv .dst{flex:none;text-align:center;background:rgba(255,255,255,.12);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.25);border-radius:22px;padding:14px 22px;min-width:110px;animation:pop .6s both}
-.adv .dst b{display:block;font-size:clamp(32px,5vw,52px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}.adv .dst small{font-size:14px;opacity:.9}
-@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
-@media(max-width:600px){.adv-loc,.adv-ph{min-height:250px;padding:22px 18px;gap:12px}.radar{width:84px;height:84px}.radar .ic-svg{width:44px;height:44px;padding:9px}.adv .dst{min-width:84px;padding:10px 12px}.adv-ph .rk{font-size:100px}.adv-ph .adv-tx,.adv-loc .adv-tx{min-width:0}.adv-ph .adv-tx b{font-size:24px}}
-@media(prefers-reduced-motion:reduce){.adv-ph,.radar i,.adv .dst{animation:none}}
+/* عرض سينمائي داخل بطاقة الهيرو: الصيدليات المفتوحة في نطاق 10 كم */
+.vis .rdr{position:absolute;top:110px;left:50%;width:160px;height:160px;margin-left:-80px;pointer-events:none}
+.vis .rdr i{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,.5);animation:rd 3.2s ease-out infinite;opacity:0}.vis .rdr i:nth-child(2){animation-delay:1.06s}.vis .rdr i:nth-child(3){animation-delay:2.12s}
+@keyframes rd{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.3);opacity:0}}
+.fc.show{width:min(260px,70%);max-width:none;gap:6px;z-index:3}
+.fc.show .shk{font-size:11.5px;font-weight:800;color:var(--gr,#25A877);display:flex;justify-content:space-between;gap:8px}
+.fc.show .sh{display:flex;flex-direction:column;gap:6px;animation:sin .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sin{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.fc.show .shn{font-size:18px;font-weight:900;line-height:1.3}
+.fc.show .shd{display:flex;align-items:baseline;gap:6px}.fc.show .shd b{font-size:30px;font-weight:900;color:var(--bl);font-variant-numeric:tabular-nums;line-height:1}.fc.show .shd small{color:var(--mu)}
+.fc.show .sha{font-size:12px;color:var(--mu)}
+.fc.show .shb{display:flex;gap:6px;align-items:center;justify-content:space-between}
+.fc.show .shb a{font-weight:800;font-size:12.5px;color:var(--bl);text-decoration:none}
+.shdots{display:flex;gap:4px}.shdots i{width:6px;height:6px;border-radius:6px;background:var(--ln);transition:.3s}.shdots i.on{width:18px;background:var(--bl)}
+button.fc.ask{cursor:pointer;text-align:start;font-family:inherit;color:inherit}
+.sug{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+@media(prefers-reduced-motion:reduce){.vis .rdr i,.fc.show .sh{animation:none}}
+@media(max-width:900px){.vis{height:540px}.fc.show{top:250px;left:calc(50% - 130px);right:auto;width:260px}.f2{top:24px}}

@@ -3,7 +3,6 @@ import { Icon } from './icons.jsx';
 import { CATS, catHue, resolveCat } from './lib/cats.js';
 import { PCard } from './shopparts.jsx';
 import { trs, tdata } from './lib/i18n.js';
-import { fmtKm } from './lib/geo.js';
 import './home.css';
 
 const SAFE = /^(#\/|https:\/\/)/;
@@ -14,9 +13,9 @@ const BUILTIN = [
   { builtin: true, id: 'b3', title: 'عندك صيدلية؟ انضم لدواك', sub: 'ارفع أدويتك وأسعارك واستقبل طلبات المرضى القريبين منك.', cta: 'سجّل صيدليتك', link: '#/register?role=pharmacy', tone: 2 },
 ];
 
-export function Banners({ list, lead }) {
-  const items = [...(lead || []), ...(list && list.length ? list : BUILTIN)];
-  const el = useRef(null), lock = useRef(0), hold = useRef(false), cur = useRef(0);
+export function Banners({ list }) {
+  const items = list && list.length ? list : BUILTIN;
+  const el = useRef(null), hold = useRef(false), cur = useRef(0);
   const [i, setI] = useState(0);
   // نحرّك شريط الإعلانات أفقياً بس (scrollTo على الشريط نفسه). scrollIntoView كان بيسحب الصفحة كلها لفوق كل 5 ثواني.
   const goTo = (n) => {
@@ -25,39 +24,17 @@ export function Banners({ list, lead }) {
     cur.current = n;
     e.scrollTo({ left: dir * n * e.clientWidth, behavior: 'smooth' });
   };
-  const nl = (lead || []).length;
-  useEffect(() => { if (nl) { cur.current = 0; setI(0); const e = el.current; lock.current = Date.now() + 500; if (e) e.scrollTo({ left: 0, behavior: 'instant' }); } }, [nl]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (items.length < 2) return undefined;
     const t = setInterval(() => { if (!hold.current && !document.hidden) { const n = (cur.current + 1) % items.length; goTo(n); setI(n); } }, 5000);
     return () => clearInterval(t);
   }, [items.length]);
-  const onScroll = () => { const e = el.current; if (!e || Date.now() < lock.current) return; const n = Math.round(Math.abs(e.scrollLeft) / (e.clientWidth || 1)); if (n >= 0 && n < items.length && n !== cur.current) { cur.current = n; setI(n); } };
+  const onScroll = () => { const e = el.current; if (!e) return; const n = Math.round(Math.abs(e.scrollLeft) / (e.clientWidth || 1)); if (n >= 0 && n < items.length && n !== cur.current) { cur.current = n; setI(n); } };
   return (
     <section className="bnr" onMouseEnter={() => { hold.current = true; }} onMouseLeave={() => { hold.current = false; }} onTouchStart={() => { hold.current = true; }} onTouchEnd={() => { setTimeout(() => { hold.current = false; }, 4000); }}>
       <div className="bnr-t" ref={el} onScroll={onScroll}>
         {items.map((b) => {
           const link = b.link && SAFE.test(b.link) ? b.link : undefined;
-          if (b.kind === 'loc') return (
-            <div className="adv adv-loc" key={b.id}>
-              <div className="radar"><i></i><i></i><i></i><Icon n="pin" s={34} /></div>
-              <div className="adv-tx">
-                <small className="kick">{trs("موقعك الدقيق")}{b.acc != null && <> · ±{b.acc} {trs("م")}</>}</small>
-                <b>{b.count ? trs("لقينا {0} صيدلية حواليك", [b.count]) : trs("لسه مفيش صيدليات قريبة منك")}</b>
-                {b.names.length > 0 && <span>{b.names.join(' · ')}</span>}
-              </div>
-            </div>);
-          if (b.kind === 'ph') return (
-            <a className={'adv adv-ph' + (b.open ? '' : ' shut')} key={b.id} href={link} target="_blank" rel="noopener noreferrer">
-              <div className="rk">{String(b.rank).padStart(2, '0')}</div>
-              <div className="adv-tx">
-                <small className="kick">{b.rank === 1 ? trs("الأقرب ليك") : trs("صيدلية قريبة")} · {trs(b.gov)}</small>
-                <b>{b.name}</b>
-                <span><bdi>{b.address}</bdi>{b.hours ? ' · ' + tdata(b.hours) : ''}</span>
-                <div className="chs"><em className={b.open ? 'ok' : 'rd'}>{b.open ? trs("مفتوحة الآن") : trs("مغلقة حالياً")}</em><em>{trs("الاتجاهات ◂")}</em></div>
-              </div>
-              <div className="dst"><b>{b.dist}</b><small>{b.unit}</small></div>
-            </a>);
           return b.imageUrl
             ? <a className="adv adv-img" key={b.id} href={link} {...(link && link.startsWith('https') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
                 <img src={b.imageUrl} alt={b.title || ''} loading="lazy" />

@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { loadHome, loadCatalog } from '../lib/featured.js';
 import { Icon } from '../icons.jsx';
 import { ProdCard, PharmCard, goSearch } from '../components.jsx';
 import { trs } from '../lib/i18n.js';
 import { Banners, CatTiles, Rails, OffersRail, BrandsRow } from '../homeparts.jsx';
-import { WhereChip, NearSection, nearSlides } from '../areas.jsx';
-import { useWhere } from '../lib/where.js';
-import { km } from '../lib/geo.js';
+import { WhereChip, NearSection, HeroNear, Radar } from '../areas.jsx';
 
 const FAQ = [
   ['هل دواك بديل للدكتور؟', 'لا. دواك بيساعدك تلاقي الدوا وتطلبه، لكن التشخيص والعلاج عند الطبيب. وفي الطوارئ اتصل بالإسعاف 123.'],
@@ -22,10 +20,8 @@ export default function Home() {
   const [cat, setCat] = useState(null);
   useEffect(() => { loadHome().then(setH).catch(() => setH({ pharmacies: [], products: [], stats: null })); loadCatalog().then(setCat).catch(() => {}); }, []);
   const prods = h?.products || [], shop = cat?.products || [], phs = h?.pharmacies || [];
-  const w = useWhere();
   const allPhs = phs.length ? phs : Object.values(cat?.pharmacies || {});
-  const lead = useMemo(() => nearSlides(w, allPhs), [w, allPhs.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  const fp = prods[0], fph = (w && w.lat != null ? [...phs].filter((x) => x.open && x.lat != null).sort((a, b) => km(w, a) - km(w, b))[0] : null) || phs.find((x) => x.open) || phs[0];
+  const fp = prods[0];
   const chips = prods.slice(0, 5).map((p) => p.name); // أسماء حقيقية من المنتجات المتاحة فعلاً
   return (
     <div className="home">
@@ -49,14 +45,15 @@ export default function Home() {
         </div>
         <div className="vis">
           <div className="arch"></div>
+          <Radar />
           <div className="lgo"><img src="/assets/mark.png" alt="" /></div>
-          {fph && <div className="fc f1"><span className="mu">{trs(fph.governorate)}</span><b>{fph.name}</b><span className={'bd ' + (fph.open === false ? 'rd' : 'ok')}>{fph.open === false ? trs("مغلقة حالياً") : trs("مفتوحة الآن")}</span></div>}
+          <HeroNear phs={allPhs} />
           {fp && <div className="fc f2"><span className="mu">{trs("متاح الآن")}</span><b>{fp.name}</b><span className="ok">{(fp.min === fp.max ? fp.min : trs("من ") + fp.min) + trs(" ج.م")}</span></div>}
           <div className="fc f3"><b className="row g"><Icon n="truck" s={18} /> {trs("تتبّع طلبك لحظة بلحظة")}</b><span className="mu">{trs("من التحضير لحد وصول المندوب")}</span></div>
         </div>
       </section>
 
-      <Banners list={h?.banners} lead={lead} />
+      <Banners list={h?.banners} />
       {shop.length > 0 && <CatTiles products={shop} />}
       {shop.length > 0 && <OffersRail products={shop} phs={cat?.pharmacies} />}
       {shop.length > 0 && <BrandsRow products={shop} />}
