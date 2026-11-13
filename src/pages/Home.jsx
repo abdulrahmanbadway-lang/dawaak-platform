@@ -4,6 +4,7 @@ import { Icon } from '../icons.jsx';
 import { ProdCard, PharmCard, goSearch } from '../components.jsx';
 import { trs } from '../lib/i18n.js';
 import { Banners, CatTiles, Rails, OffersRail, BrandsRow } from '../homeparts.jsx';
+import { CoverStrip, Reviews } from '../contact.jsx';
 import { WhereChip, NearSection, HeroNear, Radar } from '../areas.jsx';
 
 const FAQ = [
@@ -86,6 +87,9 @@ export default function Home() {
           <div className="card"><div className="hn"><Icon n="rx" s={24} /></div><h3>{trs("أدوية الروشتة بمراجعة")}</h3><p className="mu">{trs("الأدوية اللي بتحتاج روشتة بتتطلب بمراجعة صيدلي مرخّص.")}</p></div>
         </div>
       </section>
+
+      <CoverStrip stats={h?.stats} />
+      <Reviews />
 
       <section className="sec">
         <h2>{trs("أسئلة")}{" "}<span className="gr">{trs("شائعة")}</span></h2>

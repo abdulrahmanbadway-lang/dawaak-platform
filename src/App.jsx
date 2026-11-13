@@ -22,6 +22,7 @@ import { useFavs } from './lib/favs.js';
 import { usePresence } from './lib/presence.js';
 import Area from './pages/Area.jsx';
 import { autoLocate } from './lib/where.js';
+import { ContactFab } from './contact.jsx';
 import { trs, useLang, setLang, applyLang } from './lib/i18n.js';
 import './ltr.css';
 
@@ -111,7 +112,7 @@ function Routes() {
   else if (path === '/admin') page = role === 'admin' ? <Admin /> : <Need role="admin" />;
   else if (path.startsWith('/pharmacy')) page = role === 'pharmacy' ? <PharmacyDash /> : <Need role="pharmacy" />;
   else page = <Home />;
-  return <><Header /><main className="w">{page}</main><Footer /></>;
+  return <><Header /><main className="w">{page}</main><Footer /><ContactFab /></>;
 }
 function Root() { const lang = useLang(); return <Routes key={lang} />; }
 export default function App() { return <AuthProvider><Root /></AuthProvider>; }

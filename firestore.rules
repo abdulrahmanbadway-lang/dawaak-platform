@@ -57,6 +57,38 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // بيانات تواصل الموقع: الكل يقرأ، والأدمن بس يكتب (إيميل / تليفون / واتساب)
+    match /settings/contact {
+      function ctOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['email', 'phone', 'whatsapp', 'updatedAt'])
+          && d.email is string && d.email.size() <= 80 && (d.email == '' || d.email.matches('[^@ ]+@[^@ ]+[.][^@ ]+'))
+          && d.phone is string && (d.phone == '' || d.phone.matches('[+]?[0-9 ]{6,20}'))
+          && d.whatsapp is string && (d.whatsapp == '' || d.whatsapp.matches('[+]?[0-9 ]{6,20}'))
+          && d.updatedAt == request.time;
+      }
+      allow read: if true;
+      allow create, update: if isAdmin() && ctOk();
+      allow delete: if isAdmin();
+    }
+
+    // آراء العملاء: رأي واحد لكل مريض (id = uid)، الاسم لازم يكون أول جزء من اسم حسابه. الأدمن يحذف أي رأي.
+    match /reviews/{uid} {
+      function rvOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['name', 'rating', 'text', 'createdAt', 'updatedAt'])
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 40
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name[0:d.name.size()] == d.name
+          && d.rating is int && d.rating >= 1 && d.rating <= 5
+          && d.text is string && d.text.size() >= 5 && d.text.size() <= 300
+          && d.updatedAt == request.time;
+      }
+      allow read: if true;
+      allow create: if isPatient() && request.auth.uid == uid && rvOk() && request.resource.data.createdAt == request.time;
+      allow update: if isPatient() && request.auth.uid == uid && rvOk() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin() || (active() && request.auth.uid == uid);
+    }
+
     match /products/{id} {
       // الصورة: JPEG مضغوطة داخل المستند (حد أقصى 200 ألف حرف) أو رابط https
       function imgUrlOk() {

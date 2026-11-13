@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { collection, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, deleteDoc, addDoc, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, deleteDoc, addDoc, setDoc, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { db, auth } from '../firebase.js';
 import { useAuth } from '../auth.jsx';
@@ -8,6 +8,7 @@ import { toast, Badge } from '../ui.jsx';
 import { Icon } from '../icons.jsx';
 import { bannerImage } from '../lib/img.js';
 import { nearestGov } from '../lib/egypt.js';
+import { resetContact, waLink, telLink } from '../lib/site.js';
 import '../admin.css';
 
 const ON_MS = 120000, RECENT_MS = 15 * 60000, STALE_MS = 24 * 3600000;
@@ -466,7 +467,52 @@ function AreasAdmin({ sessions, orders, users, phs, now }) {
   );
 }
 
-const TABS = [['overview', 'نظرة عامة', 'home'], ['live', 'مباشر', 'bolt'], ['users', 'المستخدمون', 'users'], ['areas', 'المناطق', 'pin'], ['pharmacies', 'الصيدليات', 'store'], ['products', 'المنتجات', 'pill'], ['banners', 'الإعلانات', 'star'], ['orders', 'الطلبات', 'bag'], ['rx', 'الروشتات', 'rx'], ['system', 'النظام', 'shield']];
+function ContactAdmin() {
+  const [f, setF] = useState({ email: '', phone: '', whatsapp: '' }), [ok, setOk] = useState(false), [busy, setBusy] = useState(false);
+  useEffect(() => { getDoc(doc(db, 'settings', 'contact')).then((s) => { if (s.exists()) { const d = s.data(); setF({ email: d.email || '', phone: d.phone || '', whatsapp: d.whatsapp || '' }); } setOk(true); }).catch((e) => { toast('تعذر التحميل: ' + (e.code || e.message)); setOk(true); }); }, []);
+  const save = async (e) => {
+    e.preventDefault();
+    const d = { email: f.email.trim(), phone: f.phone.trim(), whatsapp: f.whatsapp.trim() };
+    if (d.email && !/^[^@ ]+@[^@ ]+\.[^@ ]+$/.test(d.email)) return toast('الإيميل مش مكتوب صح');
+    for (const k of ['phone', 'whatsapp']) if (d[k] && !/^\+?[0-9 ]{6,20}$/.test(d[k])) return toast('الرقم لازم يكون أرقام بس (مثال: 01012345678)');
+    setBusy(true);
+    try { await setDoc(doc(db, 'settings', 'contact'), { ...d, updatedAt: serverTimestamp() }); resetContact(); toast('اتحفظت ✓ (بتظهر فوراً في زر التواصل)'); }
+    catch (x) { toast('تعذر الحفظ: ' + (x.code || x.message)); }
+    setBusy(false);
+  };
+  const inp = (k, l, ph, dir) => <label className="adm-f"><span>{l}</span><input className="fi" dir={dir} value={f[k]} placeholder={ph} onChange={(e) => setF((x) => ({ ...x, [k]: e.target.value }))} /></label>;
+  return (
+    <form className="adm-card" onSubmit={save}>
+      <h3>بيانات التواصل مع الموقع</h3>
+      <p className="mu">اللي تكتبه هنا بيظهر لكل الزوار في زر التواصل العائم. اترك أي خانة فاضية لو مش عايز القناة دي تظهر.</p>
+      {inp('email', 'إيميل التواصل', 'support@example.com', 'ltr')}
+      {inp('whatsapp', 'رقم واتساب', '01012345678', 'ltr')}
+      {inp('phone', 'رقم الاتصال الهاتفي', '01012345678', 'ltr')}
+      <div className="row g"><button className="btn" disabled={busy || !ok}>{busy ? '…' : 'حفظ'}</button>
+        {f.whatsapp && <a className="btn o" href={waLink(f.whatsapp)} target="_blank" rel="noreferrer">جرّب الواتساب</a>}
+        {f.phone && <a className="btn o" href={telLink(f.phone)}>جرّب الاتصال</a>}</div>
+    </form>
+  );
+}
+
+function ReviewsAdmin() {
+  const [rows, setRows] = useState(null);
+  const load = useCallback(() => getDocs(query(collection(db, 'reviews'), limit(100))).then((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)))).catch((e) => { toast('تعذر التحميل: ' + (e.code || e.message)); setRows([]); }), []);
+  useEffect(() => { load(); }, [load]);
+  const del = async (r) => { if (!confirm('تحذف رأي ' + r.name + '؟')) return; try { await deleteDoc(doc(db, 'reviews', r.id)); await load(); } catch (x) { toast(x.code || x.message); } };
+  if (!rows) return <p className="mu">جاري التحميل…</p>;
+  const avg = rows.length ? (rows.reduce((s, r) => s + (r.rating || 0), 0) / rows.length).toFixed(1) : '—';
+  return (
+    <div className="adm-card">
+      <h3>آراء العملاء ({rows.length}) · المتوسط {avg}/5</h3>
+      <table className="adm-t"><thead><tr><th>الاسم</th><th>التقييم</th><th>الرأي</th><th></th></tr></thead>
+        <tbody>{rows.map((r) => <tr key={r.id}><td><b>{r.name}</b></td><td>{'★'.repeat(r.rating || 0)}</td><td>{r.text}</td><td><button className="btn o sm" onClick={() => del(r)}>حذف</button></td></tr>)}
+          {!rows.length && <tr><td colSpan="4" className="mu">لسه مفيش آراء.</td></tr>}</tbody></table>
+    </div>
+  );
+}
+
+const TABS = [['overview', 'نظرة عامة', 'home'], ['live', 'مباشر', 'bolt'], ['users', 'المستخدمون', 'users'], ['areas', 'المناطق', 'pin'], ['pharmacies', 'الصيدليات', 'store'], ['products', 'المنتجات', 'pill'], ['banners', 'الإعلانات', 'star'], ['reviews', 'الآراء', 'heart'], ['contact', 'التواصل', 'chat'], ['orders', 'الطلبات', 'bag'], ['rx', 'الروشتات', 'rx'], ['system', 'النظام', 'shield']];
 
 export default function Admin() {
   const [tab, setTab] = useState('overview');
@@ -493,6 +539,8 @@ export default function Admin() {
       {tab === 'overview' && <Overview sessions={sessions} online={online} users={users} phs={phs} orders={orders} now={now} />}
       {tab === 'live' && <Live sessions={sessions} online={online} recent={recent} now={now} />}
       {tab === 'users' && <Users users={users} setUsers={setUsers} sessions={sessions} now={now} onlineIds={onlineIds} meId={me?.uid} />}
+      {tab === 'reviews' && <ReviewsAdmin />}
+      {tab === 'contact' && <ContactAdmin />}
       {tab === 'areas' && <AreasAdmin sessions={sessions} orders={orders} users={users} phs={phs} now={now} />}
       {tab === 'pharmacies' && <Pharmacies phs={phs} setPhs={setPhs} users={users} />}
       {tab === 'products' && <ProductsAdmin phs={phs} />}

@@ -127,6 +127,9 @@ export function buildDocs(uid) {
   // البانرات (الأدمن بيعدلها من لوحة التحكم)
   [['عروض الأسبوع', 'خصومات على أكتر من 40 صنف من الصيدليات القريبة منك', '#/shop?offers=1'], ['ارفع روشتتك', 'الصيدلي هيرد عليك بالأصناف والأسعار قبل ما تأكد', '#/rx/new'], ['كل احتياجات طفلك', 'حفاضات وأغذية ورعاية بتوصل لحد باب البيت', '#/shop']]
     .forEach(([title, sub, link], i) => add(`banners/seed-b${i + 1}`, { title, sub, link, imageUrl: IMG.banners[i], order: i + 1, active: true, createdAt: D((3 - i) * 864e5) }));
+  // آراء تجريبية للعرض (من حسابات العرض، seed:true، وبتتمسح مع clear.mjs)
+  [['p1', 5, 'لقيت الدوا في صيدلية جنب بيتي في دقايق، والطلب وصلني وأنا متابع المندوب على الخريطة.', 9], ['p2', 5, 'رفعت الروشتة والصيدلي رد بالأصناف والأسعار بسرعة. تجربة مريحة جداً.', 6], ['p3', 4, 'الموقع سهل ومقارنة الأسعار بين الصيدليات وفرت عليا. نفسي المنتجات تزيد.', 4], ['p5', 5, 'أحسن حاجة إن الصيدليات كلها مراجعة ومرخصة، فمطمّن وأنا بطلب.', 2]]
+    .forEach(([k, rating, text, days]) => add(`reviews/${uid(k)}`, { name: PATIENTS.find((p) => p.key === k).name.split(' ')[0], rating, text, createdAt: D(days * 864e5), updatedAt: D(days * 864e5), seed: true }));
   // مناطق المستخدمين واحتياج كل منطقة (أرقام تجريبية للعرض بتتمسح مع clear.mjs)
   const GOVP = { p1: ['الجيزة', 30.04, 31.21], p2: ['القاهرة', 30.05, 31.24], p3: ['القاهرة', 30.06, 31.34], p4: ['الجيزة', 30.06, 31.2], p5: ['الإسكندرية', 31.22, 29.95], p6: ['الدقهلية', 31.04, 31.38] };
   PATIENTS.forEach((p, i) => { const [gov, lat, lng] = GOVP[p.key]; add(`presence/${uid(p.key)}`, { uid: uid(p.key), path: ['/', '/shop', '/orders', '/search', '/cart', '/'][i], dev: 'Android · Chrome', mobile: true, cc: 'EG', gov, lat, lng, since: now - 3 * H, lastSeen: D((i + 1) * 4 * 6e4) }); });
