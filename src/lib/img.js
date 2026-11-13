@@ -76,3 +76,24 @@ export async function bannerImage(file) {
     throw new Error('الصورة معقّدة وكبيرة. جرّب صورة أبسط أو بحجم أصغر.');
   } finally { URL.revokeObjectURL(url); }
 }
+
+// صورة مستند رسمي (سجل تجاري / بطاقة ضريبية / رخصة): أوضح من صورة المنتج، ومضغوطة لأقل من 240 ألف حرف
+// (3 مستندات في مستند Firestore واحد لازم تفضل تحت الحد الأقصى 1 ميجا)
+export const DOC_MAX_CHARS = 240000;
+export async function docImage(file) {
+  if (!file || !/^image\//.test(file.type)) throw new Error(trs("اختار صورة (JPG أو PNG)"));
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error(trs("تعذر قراءة الصورة"))); i.src = url; });
+    for (const [max, q] of [[1600, 0.74], [1400, 0.66], [1200, 0.58], [1000, 0.5], [900, 0.42]]) {
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      const x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+      const d = c.toDataURL('image/jpeg', q);
+      if (d.length <= DOC_MAX_CHARS) return d;
+    }
+    throw new Error(trs("الصورة كبيرة جداً. صوّر المستند من مسافة أقرب وبإضاءة كويسة."));
+  } finally { URL.revokeObjectURL(url); }
+}

@@ -102,6 +102,7 @@ export function buildDocs(uid) {
       inv[i][pr.k] = { id: idOf.prod(i, pr.k), ...d };
     });
   });
+  PHARMACIES.forEach((p, i) => add(`pharmacyDocs/${uid('ph' + (i + 1))}`, { commercial: IMG.docs[0], tax: IMG.docs[1], license: IMG.docs[2], createdAt: D((20 - i) * 864e5), updatedAt: D((20 - i) * 864e5) })); // مستندات تجريبية (نموذج، مش رسمية)
   COURIERS.forEach((c) => add(`couriers/${uid(c.key)}`, { pharmacyId: uid('ph' + (c.ph + 1)), name: c.name, phone: c.phone, active: true, createdAt: D(15 * 864e5) }));
   const pat = Object.fromEntries(PATIENTS.map((p) => [p.key, p])), cour = Object.fromEntries(COURIERS.map((c) => [c.key, c]));
   ORDERS.forEach(([n, pk, pi, status, hrs, lines, ck]) => {

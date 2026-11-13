@@ -6,6 +6,7 @@ import { go } from '../router.js';
 import { Icon } from '../icons.jsx';
 import { GOV } from '../lib/gov.js';
 import { km, fmtKm, getPos } from '../lib/geo.js';
+import { DestPick } from '../areas.jsx';
 import { rxImage } from '../lib/img.js';
 import { useRx } from '../lib/rx.js';
 import { RX_LABEL, RX_TONE, RX_OPEN } from '../lib/status.js';
@@ -90,7 +91,7 @@ function NewRx({ q }) {
         <h3>{trs("3) بيانات التوصيل")}</h3>
         <Field label={trs("رقم الموبايل")} name="phone" type="tel" v={f.phone} on={set('phone')} dir="ltr" maxLength={20} />
         <Field label={trs("عنوان التوصيل")} name="address" v={f.address} on={set('address')} maxLength={300} />
-        <button type="button" className="btn o sm" onClick={async () => { try { const x = await getPos(); setDest({ lat: +x.lat.toFixed(6), lng: +x.lng.toFixed(6) }); toast(trs("تم تحديد موقع التوصيل ✓")); } catch { toast(trs("اسمح بالوصول للموقع")); } }}><Icon n="pin" s={16} /> {dest ? trs("تم تحديد موقع التوصيل ✓") : trs("حدد موقع التوصيل (عشان تتابع المندوب)")}</button>
+        <DestPick dest={dest} onChange={setDest} />
         <Field label={trs("ملاحظات للصيدلي (اختياري)")} name="note" type="textarea" v={f.note} on={set('note')} maxLength={500} placeholder={trs("مثلاً: عندي حساسية من البنسلين")} />
         <button className="btn g full" disabled={busy || prep}>{busy ? '…' : trs("إرسال الروشتة للصيدلي")}</button>
       </div>

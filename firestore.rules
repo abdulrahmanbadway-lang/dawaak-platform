@@ -188,6 +188,26 @@ service cloud.firestore {
     // ───────── المتواجدون الآن (لوحة الأدمن) ─────────
     // مستند لكل مستخدم مسجّل (id = uid) ولكل زائر (id = v_xxxx). الكتابة بتتحقق من الشكل والحجم، والقراءة والحذف للأدمن بس.
     // المسجّل مش بيقدر يكتب إلا مستنده هو؛ الاسم والدور بيتجابوا من users مش من هنا عشان ما يتزوروش.
+    // ───────── المستندات الرسمية للصيدليات (سجل تجاري / بطاقة ضريبية / رخصة) ─────────
+    // مش بتظهر لأي مستخدم: الصيدلية صاحبتها والأدمن بس. الصيدلية تقدر تستبدلها لحد ما تتوثّق. الأدمن بس يحذفها.
+    match /pharmacyDocs/{pid} {
+      function dimg(s) { return s is string && s.size() <= 250000 && s.matches('data:image/jpeg;base64,.*'); }
+      function dshape() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['commercial', 'tax', 'license', 'createdAt', 'updatedAt'])
+          && d.keys().hasAll(['commercial', 'tax', 'license', 'createdAt', 'updatedAt'])
+          && dimg(d.commercial) && dimg(d.tax) && dimg(d.license) && d.updatedAt == request.time;
+      }
+      allow read: if (active() && request.auth.uid == pid) || isAdmin();
+      allow create: if active() && request.auth.uid == pid
+        && exists(/databases/$(database)/documents/pharmacies/$(pid))
+        && dshape() && request.resource.data.createdAt == request.time;
+      allow update: if active() && request.auth.uid == pid
+        && get(/databases/$(database)/documents/pharmacies/$(pid)).data.verified == false
+        && dshape() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
     // ───────── احتياج المناطق (عدّادات مجمّعة بدون بيانات شخصية) ─────────
     // أي زائر يقدر يزوّد عدّاد كلمة بحث/سلة لمحافظته بمقدار 1 بس؛ الأدمن بس هو اللي يقرأها.
     match /demand/{id} {

@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
 
   const login = (email, password) => { setIssue(''); return signInWithEmailAndPassword(auth, email, password); };
   const resetPassword = (email) => sendPasswordResetEmail(auth, email);
-  const register = async ({ name, email, password, role, pharmacy }) => {
+  const register = async ({ name, email, password, role, pharmacy, docs }) => {
     busy.current = true;
     try {
       const c = await createUserWithEmailAndPassword(auth, email, password);
@@ -61,8 +61,11 @@ export function AuthProvider({ children }) {
       await setDoc(doc(db, 'users', c.user.uid), { name, email, role, createdAt: serverTimestamp() });
       if (role === 'pharmacy')
         await setDoc(doc(db, 'pharmacies', c.user.uid), {
-          ...pharmacy, ownerName: name, status: 'active', verified: false, open: true, lat: null, lng: null, createdAt: serverTimestamp(),
+          ...pharmacy, ownerName: name, status: 'active', verified: false, open: true, lat: pharmacy.lat ?? null, lng: pharmacy.lng ?? null, createdAt: serverTimestamp(),
         });
+      // المستندات الرسمية في مجموعة منفصلة (الصيدلية صاحبتها والأدمن بس يقروها)
+      if (role === 'pharmacy' && docs)
+        await setDoc(doc(db, 'pharmacyDocs', c.user.uid), { commercial: docs.commercial, tax: docs.tax, license: docs.license, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
       setUser(c.user);
       await load(c.user);
     } finally { busy.current = false; }

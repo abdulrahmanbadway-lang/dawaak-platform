@@ -74,3 +74,20 @@
 .cities a{border:1.5px solid var(--ln);background:var(--bg);border-radius:30px;padding:4px 13px;font-size:13px;font-weight:600;display:inline-flex;gap:6px;align-items:center}
 .cities a:hover,.cities a.on{border-color:var(--bl2);color:var(--bl);background:var(--mt)}
 .cities a i{font-style:normal;background:var(--gr);color:#fff;border-radius:20px;font-size:11px;padding:0 6px}
+.nmap{padding:0;overflow:hidden;margin-top:12px}
+.nlist{display:grid;gap:10px;margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.nph{display:flex;gap:12px;align-items:center;padding:12px 14px}.nph .phi{flex:none;width:44px;height:44px;border-radius:14px;background:var(--mt);color:var(--bl);display:flex;align-items:center;justify-content:center}
+.nph .nb{flex:1;min-width:0}.nph .nd{display:grid;gap:4px;text-align:end;white-space:nowrap}.nph .nd b{color:var(--bl);font-size:16px}
+.dp{display:flex;align-items:center;gap:10px;border:1.5px dashed var(--ln);border-radius:14px;padding:10px 12px;margin:10px 0;color:var(--bl)}
+.dp.ok{border-style:solid;border-color:rgba(37,168,119,.55);background:rgba(37,168,119,.06)}
+.dp .dpt{flex:1;min-width:0;color:var(--tx);font-size:14px}.dp .dpt p{margin:2px 0 0}
+.docs{display:grid;gap:12px;margin:8px 0}
+.docbox .dl{display:block;font-weight:700;margin-bottom:6px}
+.dz{position:relative;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;min-height:130px;border:2px dashed var(--ln);border-radius:16px;background:var(--bg);color:var(--mu);cursor:pointer;overflow:hidden;text-align:center;padding:10px}
+.dz.has{border-style:solid;border-color:rgba(37,168,119,.55);padding:0}.dz.off{cursor:default}
+.dz img{width:100%;max-height:240px;object-fit:contain;background:#fff;display:block}
+.dz .chg{position:absolute;bottom:8px;inset-inline-end:8px;background:rgba(15,40,70,.8);color:#fff;font-size:12px;padding:3px 10px;border-radius:20px}
+.docview{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
+.docview figure{margin:0}.docview figcaption{font-weight:700;margin-bottom:4px;font-size:13px}
+.docview img{width:100%;max-height:200px;object-fit:contain;background:#fff;border:1px solid var(--ln);border-radius:10px;cursor:zoom-in}
+.docview figure.zoom{grid-column:1/-1}.docview figure.zoom img{max-height:none;cursor:zoom-out}

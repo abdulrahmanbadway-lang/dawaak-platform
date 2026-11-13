@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, updateDoc, getDoc, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, getDoc, setDoc, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { useAuth } from '../auth.jsx';
 import { GOV } from '../lib/gov.js';
 import { getPos } from '../lib/geo.js';
+import { citiesOf } from '../lib/egypt.js';
+import { DocsFields } from '../docparts.jsx';
 import { LABEL, ms } from '../lib/status.js';
 import { Field, Badge, toast } from '../ui.jsx';
 import Products from './Products.jsx';
@@ -61,6 +63,30 @@ function Orders({ uid, couriers }) {
     </div>
   );
 }
+// المستندات الرسمية: رفع/استبدال لحد ما الصيدلية تتوثّق، وبعدها للعرض فقط
+function DocsCard({ uid, verified }) {
+  const [cur, setCur] = useState(undefined), [docs, setDocs] = useState({}), [busy, setBusy] = useState(false);
+  useEffect(() => { getDoc(doc(db, 'pharmacyDocs', uid)).then((s) => { const d = s.exists() ? s.data() : null; setCur(d); if (d) setDocs({ commercial: d.commercial, tax: d.tax, license: d.license }); }).catch(() => setCur(null)); }, [uid]);
+  if (cur === undefined) return null;
+  const ready = docs.commercial && docs.tax && docs.license;
+  const save = async () => {
+    if (!ready) return toast(trs("ارفع المستندات الثلاثة"));
+    setBusy(true);
+    try {
+      await setDoc(doc(db, 'pharmacyDocs', uid), { commercial: docs.commercial, tax: docs.tax, license: docs.license, createdAt: cur ? cur.createdAt : serverTimestamp(), updatedAt: serverTimestamp() });
+      setCur({ ...docs, createdAt: cur ? cur.createdAt : new Date() }); toast(trs("تم إرسال المستندات للمراجعة ✓"));
+    } catch (x) { toast(trs("تعذر الإرسال: ") + (x.code || x.message)); }
+    setBusy(false);
+  };
+  return (
+    <div className="card narrow">
+      <h3>{trs("المستندات الرسمية")}</h3>
+      {verified ? <p className="mu sm2">{trs("تم توثيق صيدليتك، والمستندات محفوظة عند الإدارة.")}</p>
+        : <p className={cur ? 'mu sm2' : 'err'}>{cur ? trs("المستندات وصلت للإدارة وهتتراجع. تقدر تستبدل أي مستند لحد ما يتم التوثيق.") : trs("لسه ماترفعتش المستندات. ارفع السجل التجاري والبطاقة الضريبية والرخصة عشان نوثّق صيدليتك.")}</p>}
+      {!verified && <><DocsFields docs={docs} setDocs={setDocs} /><button className="btn full" disabled={busy || !ready} onClick={save}>{busy ? '…' : cur ? trs("حفظ التعديلات") : trs("إرسال المستندات للمراجعة")}</button></>}
+    </div>
+  );
+}
 function Profile({ uid }) {
   const [f, setF] = useState(null);
   useEffect(() => { getDoc(doc(db, 'pharmacies', uid)).then((s) => setF(s.data())); }, [uid]);
@@ -72,16 +98,18 @@ function Profile({ uid }) {
     const lat = f.lat === '' || f.lat == null ? null : +f.lat, lng = f.lng === '' || f.lng == null ? null : +f.lng;
     if ((lat != null && (isNaN(lat) || Math.abs(lat) > 90)) || (lng != null && (isNaN(lng) || Math.abs(lng) > 180))) return toast(trs("إحداثيات الموقع غير صحيحة"));
     try {
-      await updateDoc(doc(db, 'pharmacies', uid), { name: f.name, phone: f.phone, governorate: f.governorate, address: f.address, hours: f.hours || '', open: !!f.open, lat, lng });
+      await updateDoc(doc(db, 'pharmacies', uid), { name: f.name, phone: f.phone, governorate: f.governorate, city: f.city || '', address: f.address, hours: f.hours || '', open: !!f.open, lat, lng });
       toast(trs("تم حفظ بيانات الصيدلية ✓"));
     } catch (x) { toast(trs("تعذر الحفظ: ") + x.message); }
   };
   return (
+    <>
     <form className="card narrow" onSubmit={save}>
       <p>{f.verified ? <Badge c="ok">{trs("صيدلية موثّقة")}</Badge> : <Badge c="am">{trs("قيد التوثيق · ترخيص")}{" "}{f.license}</Badge>}</p>
       <Field label={trs("اسم الصيدلية")} name="name" v={f.name} on={set('name')} />
       <Field label={trs("رقم الموبايل")} name="phone" v={f.phone} on={set('phone')} dir="ltr" />
       <Field label={trs("المحافظة")} name="governorate" type="select" options={GOV} v={f.governorate} on={set('governorate')} />
+      <Field label={trs("المدينة / المنطقة")} name="city" type="select" options={citiesOf(f.governorate)} v={f.city || ''} on={set('city')} />
       <Field label={trs("العنوان")} name="address" v={f.address} on={set('address')} />
       <Field label={trs("مواعيد العمل")} name="hours" v={f.hours || ''} on={set('hours')} placeholder={trs("مثلاً 9 ص – 12 م")} />
       <div className="row g"><div style={{ flex: 1 }}><Field label={trs("خط العرض (lat)")} name="lat" v={f.lat ?? ''} on={set('lat')} dir="ltr" /></div><div style={{ flex: 1 }}><Field label={trs("خط الطول (lng)")} name="lng" v={f.lng ?? ''} on={set('lng')} dir="ltr" /></div></div>
@@ -90,6 +118,8 @@ function Profile({ uid }) {
       <Field label={trs("الصيدلية مفتوحة الآن")} name="open" type="checkbox" v={f.open} on={set('open')} />
       <button className="btn full">{trs("حفظ")}</button>
     </form>
+    <DocsCard uid={uid} verified={!!f.verified} />
+    </>
   );
 }
 export default function PharmacyDash() {

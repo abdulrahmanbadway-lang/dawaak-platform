@@ -4,7 +4,7 @@ import { db } from '../firebase.js';
 import { useAuth } from '../auth.jsx';
 import { go } from '../router.js';
 import { Icon } from '../icons.jsx';
-import { getPos } from '../lib/geo.js';
+import { DestPick } from '../areas.jsx';
 import { toast, Field } from '../ui.jsx';
 import { useCart, setQty, clearCart, cartTotal } from '../lib/cart.js';
 import { trs, tdata } from '../lib/i18n.js';
@@ -52,7 +52,7 @@ export default function Cart() {
         <h2>{trs("إتمام الطلب")}</h2>
         <Field label={trs("رقم الموبايل")} name="phone" type="tel" v={co.phone} on={(v) => setCo({ ...co, phone: v })} dir="ltr" />
         <Field label={trs("عنوان التوصيل")} name="address" v={co.address} on={(v) => setCo({ ...co, address: v })} />
-        <button type="button" className="btn o sm" onClick={async () => { try { const p = await getPos(); setCo((c) => ({ ...c, dest: { lat: +p.lat.toFixed(6), lng: +p.lng.toFixed(6) } })); toast(trs("تم تحديد موقع التوصيل ✓")); } catch { toast(trs("اسمح بالوصول للموقع")); } }}><Icon n="pin" s={16} /> {co.dest ? trs("تم تحديد موقع التوصيل ✓") : trs("حدد موقع التوصيل (عشان تتابع المندوب)")}</button>
+        <DestPick dest={co.dest} onChange={(d) => setCo((c) => ({ ...c, dest: d }))} />
         <Field label={trs("ملاحظات (اختياري)")} name="note" type="textarea" v={co.note} on={(v) => setCo({ ...co, note: v })} />
         <button className="btn g" disabled={busy}>{busy ? '…' : user ? trs("تأكيد الطلب") : trs("سجّل دخولك لإتمام الطلب")}</button>
       </form>

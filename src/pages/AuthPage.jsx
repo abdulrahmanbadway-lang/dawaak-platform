@@ -4,12 +4,16 @@ import { go } from '../router.js';
 import { GOV } from '../lib/gov.js';
 import { citiesOf } from '../lib/egypt.js';
 import { Field, toast } from '../ui.jsx';
+import { DocsFields } from '../docparts.jsx';
+import { getPrecise } from '../lib/where.js';
+import { Icon } from '../icons.jsx';
 import { trs } from '../lib/i18n.js';
 
 export default function AuthPage({ mode, q }) {
   const { profile, issue, login, register, resetPassword } = useAuth();
   const role = q.get('role') === 'pharmacy' ? 'pharmacy' : 'patient'; // التسجيل العادي للمرضى؛ الصيدليات بتنضم من رابط "عندك صيدلية؟"
   const [f, setF] = useState({ name: '', email: '', password: '', pname: '', license: '', phone: '', governorate: '', city: '', address: '' });
+  const [docs, setDocs] = useState({}), [ploc, setPloc] = useState(null), [locBusy, setLocBusy] = useState(false);
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false), [sent, setSent] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
@@ -31,12 +35,14 @@ export default function AuthPage({ mode, q }) {
       if (f.name.trim().length < 2) return setErr(trs("اكتب اسمك"));
       if (role === 'pharmacy' && (!f.pname.trim() || !f.license.trim() || !f.phone.trim() || !f.governorate || !f.city || !f.address.trim()))
         return setErr(trs("كمّل بيانات الصيدلية (الاسم، رقم الترخيص، الموبايل، المحافظة، المدينة، العنوان)"));
+      if (role === 'pharmacy' && !ploc) return setErr(trs("حدّد موقع الصيدلية على الخريطة (لازم تكون في الصيدلية وقت التسجيل)"));
+      if (role === 'pharmacy' && !(docs.commercial && docs.tax && docs.license)) return setErr(trs("ارفع المستندات الرسمية الثلاثة: السجل التجاري، البطاقة الضريبية، رخصة الصيدلية"));
     }
     setBusy(true);
     try {
       if (mode === 'login') await login(f.email, f.password);
       else await register({ name: f.name.trim(), email: f.email, password: f.password, role,
-        pharmacy: role === 'pharmacy' ? { name: f.pname.trim(), license: f.license.trim(), phone: f.phone.trim(), governorate: f.governorate, city: f.city, address: f.address.trim(), hours: '' } : null });
+        pharmacy: role === 'pharmacy' ? { name: f.pname.trim(), license: f.license.trim(), phone: f.phone.trim(), governorate: f.governorate, city: f.city, address: f.address.trim(), hours: '', lat: ploc ? ploc.lat : null, lng: ploc ? ploc.lng : null } : null, docs: role === 'pharmacy' ? docs : null });
       toast(trs("أهلاً بيك في دواك 👋"));
     } catch (x) { setErr(authError(x)); }
     setBusy(false);
@@ -71,6 +77,14 @@ export default function AuthPage({ mode, q }) {
         <Field label={trs("المحافظة")} name="governorate" type="select" options={GOV} v={f.governorate} on={(v) => setF((s) => ({ ...s, governorate: v, city: '' }))} />
         <Field label={trs("المدينة / المنطقة")} name="city" type="select" options={citiesOf(f.governorate)} v={f.city} on={set('city')} />
         <Field label={trs("العنوان بالتفصيل")} name="address" v={f.address} on={set('address')} />
+        <div className={'dp' + (ploc ? ' ok' : '')}>
+          <Icon n="pin" s={20} />
+          <div className="dpt">{ploc ? <><b>{trs("تم تحديد موقع الصيدلية ✓")}</b> · {trs("الدقة")} ±{ploc.acc} {trs("م")}</> : <><b>{trs("موقع الصيدلية على الخريطة")}</b><p className="mu sm2">{trs("اضغط وإنت في الصيدلية، عشان تظهر للمرضى اللي جنبك وعشان المناديب.")}</p></>}</div>
+          <button type="button" className="btn o sm" disabled={locBusy} onClick={async () => { setLocBusy(true); try { setPloc(await getPrecise()); toast(trs("تم تحديد موقع الصيدلية ✓")); } catch { toast(trs("اسمح بالوصول للموقع من إعدادات المتصفح")); } setLocBusy(false); }}>{locBusy ? '…' : ploc ? trs("حدّث") : trs("حدّد موقعي")}</button>
+        </div>
+        <h3>{trs("بيانات الصيدلية الرسمية")}</h3>
+        <p className="mu sm2">{trs("المستندات دي بتوصل للإدارة بس (مش بتظهر لأي مستخدم)، وبنراجعها ونتأكد من صحتها قبل توثيق الصيدلية.")}</p>
+        <DocsFields docs={docs} setDocs={setDocs} />
       </>}
       {err && <p className="err">{err}</p>}
       {!err && issue && <p className="err" dir="auto">{issue}</p>}

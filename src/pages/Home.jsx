@@ -4,7 +4,7 @@ import { Icon } from '../icons.jsx';
 import { ProdCard, PharmCard, goSearch } from '../components.jsx';
 import { trs } from '../lib/i18n.js';
 import { Banners, CatTiles, Rails, OffersRail, BrandsRow } from '../homeparts.jsx';
-import { WhereChip, GovSection } from '../areas.jsx';
+import { WhereChip, NearSection } from '../areas.jsx';
 import { useWhere } from '../lib/where.js';
 import { km } from '../lib/geo.js';
 
@@ -60,7 +60,7 @@ export default function Home() {
       {shop.length > 0 && <BrandsRow products={shop} />}
       {shop.length > 0 && <Rails products={shop} phs={cat?.pharmacies} />}
 
-      <GovSection phs={phs.length ? phs : Object.values(cat?.pharmacies || {})} />
+      <NearSection phs={phs.length ? phs : Object.values(cat?.pharmacies || {})} />
 
       <section className="sec">
         <h2>{trs("إزاي")}{" "}<span className="gr">{trs("دواك")}</span> {trs("بيشتغل؟")}</h2>
