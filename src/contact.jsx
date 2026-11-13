@@ -30,15 +30,16 @@ export function ContactFab() {
     c.whatsapp && ['wa', trs("تواصل عبر واتساب"), c.whatsapp, waLink(c.whatsapp, trs("مرحباً دواك، عندي استفسار"))],
     c.phone && ['tel', trs("اتصال هاتفي"), c.phone, telLink(c.phone)],
   ].filter(Boolean) : [];
+  // القيمة (الرقم/الإيميل) بتتستخدم في الرابط بس ومش بتتعرض في الواجهة
   if (!rows.length) return null;
   return (
     <div className="cfab" ref={ref}>
       {open && <div className="cpanel" role="dialog" aria-label={trs("تواصل معانا")}>
         <b>{trs("تواصل معانا")}</b><span className="mu sm2">{trs("اختار الطريقة اللي تناسبك")}</span>
-        {rows.map(([k, l, v, h]) => (
+        {rows.map(([k, l, , h]) => (
           <a key={k} className={'copt ' + k} href={h} {...(k === 'wa' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
             <span className="ci">{k === 'wa' ? WA : k === 'mail' ? MAIL : <Icon n="phone" s={20} />}</span>
-            <span className="ct"><b>{l}</b><small dir="ltr">{v}</small></span>
+            <span className="ct"><b>{l}</b></span>
           </a>))}
       </div>}
       <button className="cbtn" onClick={() => setOpen((x) => !x)} aria-label={trs("تواصل معانا")} aria-expanded={open}><Icon n={open ? 'x' : 'chat'} s={26} /></button>

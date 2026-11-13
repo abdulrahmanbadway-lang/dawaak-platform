@@ -4,7 +4,7 @@
 @keyframes cin{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
 .copt{display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;border:1px solid var(--ln);text-decoration:none;color:var(--tx);transition:.2s}.copt:hover{border-color:var(--bl);background:var(--bg2,rgba(15,76,117,.05))}
 .copt .ci{flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--bl)}.copt.wa .ci{background:#25D366}.copt.tel .ci{background:#0F4C75}.copt.mail .ci{background:#e0803a}
-.copt .ct{display:flex;flex-direction:column;min-width:0}.copt .ct b{font-size:14px}.copt .ct small{color:var(--mu);overflow:hidden;text-overflow:ellipsis;text-align:start}
+.copt .ct{display:flex;flex-direction:column;min-width:0}.copt .ct b{font-size:15px}.copt .ct small{color:var(--mu);overflow:hidden;text-overflow:ellipsis;text-align:start}
 .ctr{text-align:center}
 .cov{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:18px;text-align:center}
 .cov>*{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 8px;color:var(--tx);text-decoration:none}.cov>*+*{border-inline-start:1px solid var(--ln)}
