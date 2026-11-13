@@ -24,12 +24,12 @@ function NewRx({ q }) {
 
   useEffect(() => {
     getDocs(query(collection(db, 'pharmacies'), limit(200)))
-      .then((s) => setPhs(s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.status === 'active')))
+      .then((s) => setPhs(s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.status === 'active' && p.verified === true)))
       .catch((e) => { toast(trs("تعذر تحميل الصيدليات: ") + e.message); setPhs([]); });
   }, []);
   const list = useMemo(() => (phs || []).filter((p) => !gov || p.governorate === gov)
     .map((p) => ({ ...p, d: loc && p.lat != null ? km(loc, p) : null }))
-    .sort((a, b) => (+!!b.open - +!!a.open) || ((a.d ?? 1e9) - (b.d ?? 1e9)) || (+!!b.verified - +!!a.verified)), [phs, gov, loc]);
+    .sort((a, b) => (+!!b.open - +!!a.open) || ((a.d ?? 1e9) - (b.d ?? 1e9))), [phs, gov, loc]);
 
   const myLoc = async () => { try { setLoc(await getPos()); toast(trs("تم تحديد موقعك ✓")); } catch { toast(trs("اسمح بالوصول للموقع أو اختار المحافظة")); } };
   const pick = async (e) => {
@@ -73,7 +73,7 @@ function NewRx({ q }) {
         <div className="plist">{list.map((p) => (
           <label key={p.id} className={'pick' + (pid === p.id ? ' on' : '')}>
             <input type="radio" name="ph" checked={pid === p.id} onChange={() => setPid(p.id)} />
-            <div><b>{p.name}</b> {p.verified ? <Badge c="ok">{trs("موثّقة")}</Badge> : <Badge c="am">{trs("قيد التوثيق")}</Badge>}
+            <div><b>{p.name}</b>
               <div className="mu sm2">{trs(p.governorate)} · <bdi>{p.address}</bdi>{p.hours ? ' · ' + tdata(p.hours) : ''}</div></div>
             <div className="tr">{p.d != null && <b className="dist">{fmtKm(p.d)}</b>}<div><Badge c={p.open ? 'ok' : 'rd'}>{p.open ? trs("مفتوحة") : trs("مغلقة")}</Badge></div></div>
           </label>

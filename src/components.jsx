@@ -23,7 +23,7 @@ export function PharmCard({ p }) {
         <h3>{p.name}</h3>
         <p className="mu sm2">{trs(p.governorate)} · <bdi>{p.address}</bdi></p>
         {p.hours && <p className="sm2 row g" style={{ gap: 6 }}><Icon n="clock" s={14} />{tdata(p.hours)}</p>}
-        <div className="brow">{p.verified ? <Badge c="ok">{trs("موثّقة")}</Badge> : <Badge c="am">{trs("قيد التوثيق")}</Badge>} <Badge c={p.open ? 'ok' : 'rd'}>{p.open ? trs("مفتوحة") : trs("مغلقة")}</Badge></div>
+        <div className="brow"><Badge c={p.open ? 'ok' : 'rd'}>{p.open ? trs("مفتوحة") : trs("مغلقة")}</Badge></div>
       </div>
     </div>
   );

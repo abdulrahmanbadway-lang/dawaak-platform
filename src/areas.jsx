@@ -7,7 +7,7 @@ import { EG } from './lib/egypt.js';
 import { askLocation, freshDest, setManualGov, useWhere } from './lib/where.js';
 import { km, fmtKm } from './lib/geo.js';
 
-const near = (w, phs) => (w && w.lat != null ? (phs || []).filter((p) => p.lat != null && p.status !== 'suspended').map((p) => ({ p, d: km(w, p) })).sort((a, b) => (b.p.open - a.p.open) || (a.d - b.d)) : []);
+export const near = (w, phs) => (w && w.lat != null ? (phs || []).filter((p) => p.lat != null && p.status !== 'suspended').map((p) => ({ p, d: km(w, p) })).sort((a, b) => (b.p.open - a.p.open) || (a.d - b.d)) : []);
 
 // شريط "موقعك": بيحدد موقعك الدقيق أول ما تدخل، ولو رفضت بتقدر تختار محافظتك
 export function WhereChip({ phs }) {
@@ -54,7 +54,7 @@ export function NearSection({ phs }) {
         <div className="nlist">{list.map(({ p, d }) => (
           <div className="card nph" key={p.id}>
             <div className="phi"><Icon n="store" s={22} /></div>
-            <div className="nb"><b>{p.name}</b> {p.verified && <Badge c="ok">{trs("موثّقة")}</Badge>} <Badge c={p.open ? 'ok' : 'rd'}>{p.open ? trs("مفتوحة") : trs("مغلقة")}</Badge>
+            <div className="nb"><b>{p.name}</b> <Badge c={p.open ? 'ok' : 'rd'}>{p.open ? trs("مفتوحة") : trs("مغلقة")}</Badge>
               <p className="mu sm2">{trs(p.governorate)} · <bdi>{p.address}</bdi>{p.hours ? ' · ' + tdata(p.hours) : ''}</p></div>
             <div className="nd"><b>{fmtKm(d)}</b><a className="go" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`}>{trs("الاتجاهات ◂")}</a></div>
           </div>))}</div>
@@ -84,4 +84,16 @@ export function DestPick({ dest, onChange }) {
       <button type="button" className="btn o sm" onClick={upd} disabled={busy}>{busy ? '…' : dest ? trs("حدّث") : trs("حدّد موقعي")}</button>
     </div>
   );
+}
+
+// شرائح العرض السينمائي: موقعك الدقيق ثم كل صيدلية قريبة (الأقرب الأول)
+export function nearSlides(w, phs, max = 10) {
+  if (!w || w.lat == null) return [];
+  const all = near(w, phs).sort((a, b) => a.d - b.d).slice(0, max);
+  const out = [{ kind: 'loc', id: 'loc', acc: w.acc, count: all.length, names: all.slice(0, 3).map((x) => x.p.name) }];
+  all.forEach(({ p, d }, i) => {
+    const t = fmtKm(d).split(' ');
+    out.push({ kind: 'ph', id: 'ph' + p.id, rank: i + 1, name: p.name, gov: p.governorate, address: p.address, hours: p.hours, open: !!p.open, dist: t[0], unit: t.slice(1).join(' '), link: `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}` });
+  });
+  return out;
 }

@@ -43,7 +43,7 @@ export default function Search({ q }) {
         if (s.exists()) m[i] = { id: i, ...s.data() };
       }));
       setPhs(m);
-      setRows(ps.filter((p) => m[p.pharmacyId] && m[p.pharmacyId].status === 'active'));
+      setRows(ps.filter((p) => m[p.pharmacyId] && m[p.pharmacyId].status === 'active' && m[p.pharmacyId].verified === true));
     } catch (x) { toast(trs("تعذر البحث: ") + x.message); }
     setBusy(false);
   };
@@ -88,7 +88,7 @@ export default function Search({ q }) {
       {groups?.map(({ ph, items, d, stock }) => (
         <div className="card ph" key={ph.id}>
           <div className="row between wrap">
-            <div><h3>{ph.name} {ph.verified ? <Badge c="ok">{trs("موثّقة")}</Badge> : <Badge c="am">{trs("قيد التوثيق")}</Badge>}</h3>
+            <div><h3>{ph.name}</h3>
               <p className="mu sm2">{trs(ph.governorate)} · <bdi>{ph.address}</bdi>{ph.hours ? ' · ' + tdata(ph.hours) : ''}</p></div>
             <div className="tr">{d != null && <b className="dist">{fmtKm(d)}</b>}
               <div><Badge c={ph.open ? 'ok' : 'rd'}>{ph.open ? trs("مفتوحة") : trs("مغلقة")}</Badge> <Badge c={stock ? 'ok' : 'rd'}>{stock ? trs("متاح") : trs("نفد")}</Badge></div></div>

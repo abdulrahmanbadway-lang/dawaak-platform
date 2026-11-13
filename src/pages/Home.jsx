@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { loadHome, loadCatalog } from '../lib/featured.js';
 import { Icon } from '../icons.jsx';
 import { ProdCard, PharmCard, goSearch } from '../components.jsx';
 import { trs } from '../lib/i18n.js';
 import { Banners, CatTiles, Rails, OffersRail, BrandsRow } from '../homeparts.jsx';
-import { WhereChip, NearSection } from '../areas.jsx';
+import { WhereChip, NearSection, nearSlides } from '../areas.jsx';
 import { useWhere } from '../lib/where.js';
 import { km } from '../lib/geo.js';
 
 const FAQ = [
   ['هل دواك بديل للدكتور؟', 'لا. دواك بيساعدك تلاقي الدوا وتطلبه، لكن التشخيص والعلاج عند الطبيب. وفي الطوارئ اتصل بالإسعاف 123.'],
-  ['إزاي الصيدلية تنضم للمنصة؟', 'سجّل حساب صيدلية، وضيف بيانات الترخيص والموقع، وابدأ ارفع أدويتك وأسعارك وصورها. بعد التحقق من الترخيص بتبقى صيدلية موثّقة.'],
+  ['إزاي الصيدلية تنضم للمنصة؟', 'سجّل حساب صيدلية، وضيف بيانات الترخيص والموقع، وابدأ ارفع أدويتك وأسعارك وصورها. وبعد ما نراجع المستندات والترخيص بتظهر صيدليتك للمرضى.'],
   ['إزاي أعرف أقرب صيدلية عندها الدوا؟', 'ابحث باسم الدوا أو المادة الفعالة واضغط "استخدم موقعي"، وهنرتب لك الصيدليات بالأقرب، واللي الدوا متاح فيها الأول.'],
   ['طرق الدفع والتوصيل؟', 'الدفع عند الاستلام حالياً، والتوصيل من الصيدلية اللي اخترتها.'],
 ];
@@ -23,6 +23,8 @@ export default function Home() {
   useEffect(() => { loadHome().then(setH).catch(() => setH({ pharmacies: [], products: [], stats: null })); loadCatalog().then(setCat).catch(() => {}); }, []);
   const prods = h?.products || [], shop = cat?.products || [], phs = h?.pharmacies || [];
   const w = useWhere();
+  const allPhs = phs.length ? phs : Object.values(cat?.pharmacies || {});
+  const lead = useMemo(() => nearSlides(w, allPhs), [w, allPhs.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const fp = prods[0], fph = (w && w.lat != null ? [...phs].filter((x) => x.open && x.lat != null).sort((a, b) => km(w, a) - km(w, b))[0] : null) || phs.find((x) => x.open) || phs[0];
   const chips = prods.slice(0, 5).map((p) => p.name); // أسماء حقيقية من المنتجات المتاحة فعلاً
   return (
@@ -54,13 +56,13 @@ export default function Home() {
         </div>
       </section>
 
-      <Banners list={h?.banners} />
+      <Banners list={h?.banners} lead={lead} />
       {shop.length > 0 && <CatTiles products={shop} />}
       {shop.length > 0 && <OffersRail products={shop} phs={cat?.pharmacies} />}
       {shop.length > 0 && <BrandsRow products={shop} />}
       {shop.length > 0 && <Rails products={shop} phs={cat?.pharmacies} />}
 
-      <NearSection phs={phs.length ? phs : Object.values(cat?.pharmacies || {})} />
+      <NearSection phs={allPhs} />
 
       <section className="sec">
         <h2>{trs("إزاي")}{" "}<span className="gr">{trs("دواك")}</span> {trs("بيشتغل؟")}</h2>
@@ -82,7 +84,7 @@ export default function Home() {
       <section className="sec">
         <h2>{trs("أمانك")}{" "}<span className="gr">{trs("أولاً")}</span></h2>
         <div className="how t3">
-          <div className="card"><div className="hn"><Icon n="shield" s={24} /></div><h3>{trs("صيدليات بترخيص")}</h3><p className="mu">{trs("كل صيدلية بنتحقق من ترخيصها وبتظهر بعلامة \"موثّقة\".")}</p></div>
+          <div className="card"><div className="hn"><Icon n="shield" s={24} /></div><h3>{trs("صيدليات بترخيص")}</h3><p className="mu">{trs("مش بنشغّل أي صيدلية غير بعد ما نراجع مستنداتها الرسمية وترخيصها.")}</p></div>
           <div className="card"><div className="hn"><Icon n="lock" s={24} /></div><h3>{trs("خصوصية بياناتك")}</h3><p className="mu">{trs("بياناتك ومعلومات طلباتك مبتتشاركش مع أي طرف تاني.")}</p></div>
           <div className="card"><div className="hn"><Icon n="rx" s={24} /></div><h3>{trs("أدوية الروشتة بمراجعة")}</h3><p className="mu">{trs("الأدوية اللي بتحتاج روشتة بتتطلب بمراجعة صيدلي مرخّص.")}</p></div>
         </div>

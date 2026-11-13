@@ -11,7 +11,7 @@ export async function loadHome(force = false) {
     getDocs(query(collection(db, 'banners'), limit(12))).catch(() => ({ docs: [] })),
   ]);
   const banners = bn.docs.map((d) => ({ id: d.id, ...d.data() })).filter((b) => b.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0));
-  const pharmacies = ps.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.status === 'active');
+  const pharmacies = ps.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.status === 'active' && p.verified === true);
   const ok = new Set(pharmacies.map((p) => p.id));
   const map = new Map();
   pr.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => ok.has(p.pharmacyId) && p.stock > 0).forEach((p) => {
@@ -24,7 +24,7 @@ export async function loadHome(force = false) {
   const products = [...map.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
   let nProducts = products.length, nPharm = pharmacies.length;
   try {
-    nPharm = (await getCountFromServer(collection(db, 'pharmacies'))).data().count;
+    nPharm = (await getCountFromServer(query(collection(db, 'pharmacies'), where('verified', '==', true)))).data().count;
     nProducts = (await getCountFromServer(collection(db, 'products'))).data().count;
   } catch { /* نستخدم الأعداد المحمّلة */ }
   cache = { pharmacies, products, banners, stats: { pharmacies: nPharm, products: nProducts, governorates: new Set(pharmacies.map((p) => p.governorate)).size } };
@@ -40,7 +40,7 @@ export async function loadCatalog(force = false) {
     getDocs(query(collection(db, 'products'), where('rx', '==', false), limit(400))),
   ]);
   const pharmacies = {};
-  ps.docs.forEach((d) => { const x = { id: d.id, ...d.data() }; if (x.status === 'active') pharmacies[d.id] = x; });
+  ps.docs.forEach((d) => { const x = { id: d.id, ...d.data() }; if (x.status === 'active' && x.verified === true) pharmacies[d.id] = x; });
   const offers = pr.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => pharmacies[p.pharmacyId]);
   const map = new Map();
   offers.forEach((p) => {

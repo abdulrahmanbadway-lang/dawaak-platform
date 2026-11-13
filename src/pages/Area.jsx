@@ -14,7 +14,7 @@ export default function Area({ q }) {
   useEffect(() => {
     if (!gov) { setRows([]); return; }
     getDocs(query(collection(db, 'pharmacies'), where('governorate', '==', gov), limit(100)))
-      .then((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.status === 'active'))).catch(() => setRows([]));
+      .then((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.status === 'active' && p.verified === true))).catch(() => setRows([]));
   }, [gov]);
   const list = useMemo(() => (rows || []).filter((p) => !city || p.city === city || (p.address || '').includes(city))
     .map((p) => ({ p, d: w && w.lat != null && p.lat != null ? km(w, p) : null }))

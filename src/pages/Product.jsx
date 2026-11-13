@@ -42,7 +42,7 @@ export default function Product({ id }) {
       {offers.map(({ o, ph, dist }) => { const inCart = cart.pid === o.pharmacyId ? cart.items[o.id]?.qty || 0 : 0; return (
         <div className="card ph offer" key={o.id}>
           <div className="row between wrap g">
-            <div><h3>{ph.name} {ph.verified ? <Badge c="ok">{trs("موثّقة")}</Badge> : <Badge c="am">{trs("قيد التوثيق")}</Badge>}</h3>
+            <div><h3>{ph.name}</h3>
               <p className="mu sm2">{trs(ph.governorate)} · <bdi>{ph.address}</bdi>{ph.hours ? ' · ' + tdata(ph.hours) : ''}{dist != null ? ' · ' + fmtKm(dist) : ''}</p>
               <Badge c={ph.open ? 'ok' : 'rd'}>{ph.open ? trs("مفتوحة") : trs("مغلقة")}</Badge></div>
             <div className="tr"><b className="price">{o.price} <small>{trs("ج.م")}</small></b>{o.oldPrice > o.price && <del className="mu"> {o.oldPrice}</del>}
