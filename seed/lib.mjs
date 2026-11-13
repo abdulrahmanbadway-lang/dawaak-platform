@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { PRODUCTS } from './data.mjs';
 import { GOV_NAMES } from '../src/lib/egypt.js';
@@ -13,6 +14,23 @@ export const PASSWORD = process.env.DW_PASSWORD || Array.from(crypto.randomBytes
 const FS = process.env.DW_FS || 'https://firestore.googleapis.com';
 const IDT = process.env.DW_IDT || 'https://identitytoolkit.googleapis.com';
 const TOKEN_URL = process.env.DW_TOKEN_URL || 'https://oauth2.googleapis.com/token';
+
+// بيانات OAuth بتاعة Firebase CLI بنقراها من firebase-tools المتسطّب عندك (مش مكتوبة في الريبو عشان ما يظهرش أي سر في كود عام).
+// لو ما لقيتهاش: حطهم يدوي DW_OAUTH_CLIENT_ID و DW_OAUTH_CLIENT_SECRET (موجودين في كود firebase-tools: lib/api.js).
+function oauthClient() {
+  if (process.env.DW_OAUTH_CLIENT_ID && process.env.DW_OAUTH_CLIENT_SECRET) return { id: process.env.DW_OAUTH_CLIENT_ID, secret: process.env.DW_OAUTH_CLIENT_SECRET };
+  const roots = [];
+  try { roots.push(execSync('npm root -g', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()); } catch { /* ignore */ }
+  roots.push(path.join(os.homedir(), '.npm-global', 'lib', 'node_modules'), '/usr/lib/node_modules', '/usr/local/lib/node_modules', path.join(process.cwd(), 'node_modules'));
+  for (const r of roots) for (const rel of ['lib/api.js', 'lib/auth.js']) {
+    try {
+      const t = fs.readFileSync(path.join(r, 'firebase-tools', rel), 'utf8');
+      const id = t.match(/(\d{6,}-[a-z0-9]+\.apps\.googleusercontent\.com)/), sec = t.match(/FIREBASE_CLIENT_SECRET["'`]?\s*,\s*["'`]([^"'`]+)["'`]/);
+      if (id && sec) return { id: id[1], secret: sec[1] };
+    } catch { /* جرّب اللي بعده */ }
+  }
+  throw new Error('مش لاقي firebase-tools على الجهاز. سطّبه: npm i -g firebase-tools، أو حط DW_OAUTH_CLIENT_ID و DW_OAUTH_CLIENT_SECRET.');
+}
 const IMG = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'images.json'), 'utf8'));
 
 // نفس دالة التوحيد المستخدمة في التطبيق (src/lib/text.js)
@@ -161,7 +179,8 @@ export async function getToken() {
   if (!fs.existsSync(f)) throw new Error('سجّل دخول Firebase الأول: firebase login --no-localhost');
   const rt = JSON.parse(fs.readFileSync(f, 'utf8')).tokens?.refresh_token;
   if (!rt) throw new Error('مفيش تسجيل دخول Firebase. شغّل: firebase login --no-localhost');
-  const r = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: rt, client_id: '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com', client_secret: 'j9iVZfS8kkCEFUPaAeJV0sAi' }) });
+  const oc = oauthClient();
+  const r = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: rt, client_id: oc.id, client_secret: oc.secret }) });
   const j = await r.json();
   if (!j.access_token) throw new Error('تعذر الحصول على صلاحية الدخول: ' + JSON.stringify(j).slice(0, 150));
   return j.access_token;

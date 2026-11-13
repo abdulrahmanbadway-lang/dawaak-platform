@@ -3,35 +3,56 @@
 مشروع تخرج · Al-Gazeera Academy · Class of 2027 Graduates
 
 ## الفكرة
-- **الصيدلية**: تسجّل حساب، تضيف أدويتها (الاسم، المادة الفعالة، الجرعة، السعر، الكمية، الصورة، التفاصيل)، وتستقبل الطلبات وتتابعها.
-- **المريض**: يبحث عن الدوا، فيشوف الصيدليات اللي عندها الدوا مرتبة بالأقرب، يطلب، ويتابع حالة طلبه.
-- (المرحلة 2) الروشتة، الاستشارة مع الصيدلي، أسئلة التشخيص المبدئي، متابعة الحالة، وتوثيق الصيدليات من الأدمن.
+- **المريض**: يحدد موقعه، يشوف الصيدليات الموثّقة القريبة (في نطاق 10 كم)، يبحث عن الدوا ويقارن الأسعار، يطلب أو يرفع روشتة، ويتابع المندوب على الخريطة.
+- **الصيدلية**: تنضم برفع مستنداتها الرسمية (سجل تجاري، بطاقة ضريبية، رخصة)، وبعد مراجعة الأدمن تظهر للمرضى. تدير منتجاتها وطلباتها وروشتاتها ومناديبها.
+- **المندوب**: يشارك موقعه لحظياً أثناء التوصيل.
+- **الأدمن**: مستخدمين، صيدليات ومستنداتها، منتجات، إعلانات، آراء العملاء، بيانات التواصل، ومناطق الاحتياج.
 
 ## التقنيات
-React 18 + Vite · Firebase (Authentication + Firestore) · Vercel
+React 18 + Vite · Firebase (Authentication + Firestore + Hosting) على خطة Spark المجانية (من غير Storage ولا Cloud Functions). الصور بتتضغط في المتصفح وتتخزن داخل Firestore.
 
-## التشغيل خطوة بخطوة
+## هيكل المشروع
+| المسار | الوصف |
+|---|---|
+| `src/pages/` | صفحات الموقع (الرئيسية، المتجر، السلة، لوحات الصيدلية والأدمن والمندوب…) |
+| `src/lib/` | منطق مشترك: الموقع (`where.js`)، المحافظات (`egypt.js`)، الترجمة (`i18n.js` و`en.js`)، السلة، الصور |
+| `firestore.rules` | **قواعد الأمان الفعلية** (أهم ملف في المشروع) |
+| `seed/` | بيانات العرض: `seed.mjs` بيضيف، `clear.mjs` بيمسح |
+| `tools/precheck-public.sh` | فحص الأسرار قبل نشر الـ Repo للعامة |
+| `deploy.sh` | بناء + نشر Firebase + رفع على GitHub |
 
-### 1) مشروع Firebase
-1. من console.firebase.google.com اعمل مشروع جديد.
-2. **Authentication** ثم Sign-in method: فعّل **Email/Password**.
-3. **Firestore Database**: اعمل قاعدة بيانات (Production mode)، وبعدين تبويب **Rules**: امسح الموجود والصق محتوى ملف `firestore.rules` واضغط Publish.
-4. **Project settings** ثم Your apps ثم Web app: انسخ قيم الإعداد (apiKey, authDomain, projectId, appId).
+## التشغيل المحلي
+```bash
+git clone <رابط-الـ-Repo> && cd dawaak-platform
+npm install
+cp .env.example .env.local     # واملأ قيم Firebase من Firebase Console
+npm run dev
+```
+قيم Firebase للويب (apiKey وغيره) **مش أسرار** بطبيعتها؛ الحماية الحقيقية في `firestore.rules`. مع كده مابنرفعش `.env*` على GitHub.
 
-### 2) Vercel
-1. ارفع المشروع على GitHub (الملفات كلها ما عدا node_modules).
-2. من vercel.com: Add New Project ثم اختار الـ Repository. الـ Framework هيتعرف لوحده (Vite).
-3. قبل Deploy: Environment Variables وضيف:
-   - VITE_FIREBASE_API_KEY
-   - VITE_FIREBASE_AUTH_DOMAIN
-   - VITE_FIREBASE_PROJECT_ID
-   - VITE_FIREBASE_APP_ID
-4. Deploy. (لو ضفت المتغيرات بعد أول Deploy اعمل Redeploy.)
-5. في Firebase: Authentication ثم Settings ثم Authorized domains: ضيف دومين Vercel بتاعك.
+## النشر
+```bash
+firebase login --no-localhost       # مرة واحدة
+firebase deploy --only firestore:rules   # لو غيّرت firestore.rules
+bash deploy.sh "رسالة التعديل"           # بناء + نشر + رفع على GitHub
+```
+(لو عايز Vercel بدل Firebase Hosting: الخطوات القديمة في `vercel.json`، ولازم تضيف متغيرات `VITE_FIREBASE_*` هناك.)
 
-### 3) صور المنتجات
-- الافتراضي: الصورة بتتضغط في المتصفح (حوالي 420px) وبتتحفظ داخل Firestore، ومش محتاج Storage ولا بطاقة بنكية.
-- لو عايز Firebase Storage: فعّله (ممكن يحتاج خطة Blaze)، والصق `storage.rules`، وحط `VITE_USE_STORAGE=1` و `VITE_FIREBASE_STORAGE_BUCKET`.
+## أول أدمن
+سجّل حساب عادي، وبعدين من Firebase Console > Firestore > `users/{uid}` غيّر الحقل `role` لـ `admin`. بعد كده الأدمن يقدر يرقّي حسابات تانية من لوحة التحكم.
+
+## بيانات العرض (Demo)
+```bash
+firebase login --no-localhost
+DW_PASSWORD='كلمة-سر-قوية' node seed/seed.mjs     # بيضيف صيدليات ومنتجات وطلبات تجريبية
+node seed/clear.mjs                               # بيمسحها
+```
+- السكريبت بيستخدم صلاحيات Firebase CLI بتاعتك، فـ**ما تشغّلوش على مشروع شغّال فعلياً**.
+- كلمة سر حسابات العرض بتتحط من `DW_PASSWORD` أو بتتولّد عشوائي وبتتطبع. مش مكتوبة في الكود.
+- صور المستندات التجريبية مكتوب عليها "نموذج تجريبي للعرض — ليس مستنداً رسمياً".
+
+## المساهمة
+الشغل الجماعي وخطوات Git في [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## نموذج البيانات (Firestore)
 | المجموعة | الوصف |
@@ -39,7 +60,12 @@ React 18 + Vite · Firebase (Authentication + Firestore) · Vercel
 | users/{uid} | الاسم، البريد، الدور (patient أو pharmacy) |
 | pharmacies/{uid} | بيانات الصيدلية، الموقع lat/lng، مفتوحة/مغلقة، verified |
 | products/{id} | pharmacyId، الاسم، المادة الفعالة، الجرعة، السعر، الكمية، rx، الصورة، التفاصيل |
-| orders/{id} | patientId، pharmacyId، العناصر، الإجمالي، الحالة |
+| orders/{id} | patientId، pharmacyId، العناصر، الإجمالي، الحالة، dest (نقطة التوصيل اللي أكدها المريض) |
+| pharmacyDocs/{pharmacyUid} | المستندات الرسمية (3 صور). تتقرأ من صاحب الصيدلية والأدمن بس |
+| reviews/{uid} | رأي واحد لكل مريض (الاسم الأول، تقييم 1-5، نص) |
+| settings/contact | إيميل/واتساب/تليفون التواصل (الأدمن بس يكتب) |
+| demand/{id} | عدّاد بحث وإضافة للسلة حسب المحافظة (الأدمن بس يقرأ) |
+| presence/{id} | تواجد الزوار: المحافظة وإحداثيات تقريبية (~1 كم) فقط |
 
 | prescriptions/{id} | الروشتة: patientId، pharmacyId، images (لحد 3 صور JPEG مضغوطة)، الحالة، عرض الصيدلي quote |
 | prescriptions/{id}/messages/{mid} | محادثة المريض والصيدلي على الروشتة (لا تتعدل ولا تتمسح) |
@@ -69,7 +95,8 @@ React 18 + Vite · Firebase (Authentication + Firestore) · Vercel
 
 ## ملاحظات أمان
 - الصلاحيات كلها في `firestore.rules`: المستخدم ميقدرش يغيّر دوره، والصيدلية تعدّل منتجاتها بس، والصيدلية ماتقدرش توثّق نفسها.
-- توثيق الصيدليات (verified) بيتم من لوحة الأدمن في المرحلة 2.
+- توثيق الصيدليات (`verified`) بيتم يدوي من لوحة الأدمن بعد مراجعة مستنداتها. الموقع بيعرض الصيدليات الموثّقة بس (الفلترة من الواجهة؛ الـ Rules لسه بتسمح بقراءة بيانات الصيدلية العامة).
+- الموقع الدقيق للمستخدم بيفضل على جهازه؛ للسيرفر بيروح المحافظة وإحداثيات مقرّبة، ونقطة التوصيل في الطلب اللي المستخدم بيأكدها.
 - **اللي الـ Rules بتفرضه فعلاً (مش بس الواجهة):**
   - الروشتة: المريض بس يعملها، لصيدلية نشطة، 1-3 صور JPEG بحد أقصى للحجم، وحالتها بتبدأ `pending`.
   - الانتقالات: الصيدلي يرد بعرض/توضيح/اعتذار بس، والمريض يرد/يلغي/يأكد بس، ومفيش حذف.
@@ -83,10 +110,3 @@ React 18 + Vite · Firebase (Authentication + Firestore) · Vercel
 - **اللي لسه الواجهة بس اللي بتمنعه:** الطلب العادي (السلة) لأدوية الروشتة، لأن الـ Rules مش بتقدر تعدّي على عناصر الطلب وتتحقق من كل منتج. الحل الكامل محتاج Cloud Function (خطة Blaze).
 - الـ Rules **لسه ما اتجربتش على الـ Emulator**: جرّبها قبل النشر (`firebase emulators:start --only firestore`).
 - المحتوى إرشادي ولا يغني عن استشارة الطبيب.
-
-## التطوير المحلي
-```bash
-npm install
-cp .env.example .env.local   # واملأ القيم
-npm run dev
-```

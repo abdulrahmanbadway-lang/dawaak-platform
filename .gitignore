@@ -12,3 +12,6 @@ dist
 backups/
 .rx-tmp/
 .rx-applied
+.*-applied
+*.zip
+*.tar.gz
