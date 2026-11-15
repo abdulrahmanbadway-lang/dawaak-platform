@@ -31,17 +31,25 @@ export async function loadHome(force = false) {
   return cache;
 }
 
-// كتالوج كامل (للمتجر): كل منتجات الصيدليات النشطة (حد أقصى 400 مستند) مجمّعة بالاسم، مع القسم والماركة والعرض
+// كتالوج كامل (للمتجر): كل منتجات الصيدليات النشطة (حد أقصى 1600 مستند) مجمّعة بالاسم، مع القسم والماركة والعرض
 let catCache = null, catAt = 0;
 export async function loadCatalog(force = false) {
   if (catCache && !force && Date.now() - catAt < 300000) return catCache;
-  const [ps, pr] = await Promise.all([
-    getDocs(query(collection(db, 'pharmacies'), limit(100))),
-    getDocs(query(collection(db, 'products'), where('rx', '==', false), limit(400))),
-  ]);
+  // كاش في الجلسة (10 دقايق) عشان الكتالوج الكبير ما يتحمّلش كل ما الصفحة تتفتح (وده بيوفّر قراءات Firestore في الخطة المجانية)
+  let raw = null;
+  if (!force) { try { const c = JSON.parse(sessionStorage.getItem('dw_cat_v1') || 'null'); if (c && Date.now() - c.t < 600000) raw = c; } catch { /* ignore */ } }
+  if (!raw) {
+    const [ps, pr] = await Promise.all([
+      getDocs(query(collection(db, 'pharmacies'), limit(100))),
+      getDocs(query(collection(db, 'products'), where('rx', '==', false), limit(1600))),
+    ]);
+    const strip = (d) => { const x = { id: d.id, ...d.data() }; delete x.createdAt; delete x.updatedAt; return x; };
+    raw = { t: Date.now(), ph: ps.docs.map(strip), pr: pr.docs.map(strip) };
+    try { sessionStorage.setItem('dw_cat_v1', JSON.stringify(raw)); } catch { /* الكاش اختياري (ممكن يتخطى الحجم المسموح) */ }
+  }
   const pharmacies = {};
-  ps.docs.forEach((d) => { const x = { id: d.id, ...d.data() }; if (x.status === 'active' && x.verified === true) pharmacies[d.id] = x; });
-  const offers = pr.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => pharmacies[p.pharmacyId]);
+  raw.ph.forEach((x) => { if (x.status === 'active' && x.verified === true) pharmacies[x.id] = x; });
+  const offers = raw.pr.filter((p) => pharmacies[p.pharmacyId]);
   const map = new Map();
   offers.forEach((p) => {
     const g = map.get(p.nameLower) || { key: p.nameLower, name: p.name, dose: p.dose || '', form: p.form || '', ingredient: p.ingredient || '', imageUrl: '', brand: '', category: '', sub: '', description: '', warnings: '', min: Infinity, max: 0, count: 0, stock: 0, oldMax: 0, offers: [] };

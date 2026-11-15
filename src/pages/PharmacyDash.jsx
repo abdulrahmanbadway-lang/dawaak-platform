@@ -34,7 +34,8 @@ function Orders({ uid, couriers }) {
         if (st === 'preparing') {
           const refs = (os.data().items || []).filter((i) => i.productId).map((i) => ({ r: doc(db, 'products', i.productId), qty: i.qty }));
           const snaps = await Promise.all(refs.map((x) => tx.get(x.r)));
-          snaps.forEach((s, k) => { if (s.exists()) tx.update(refs[k].r, { stock: Math.max(0, (s.data().stock || 0) - refs[k].qty), updatedAt: serverTimestamp() }); });
+          snaps.forEach((s, k) => { if (s.exists() && (s.data().stock || 0) < refs[k].qty) throw new Error(trs("المخزون مش كفاية لـ ") + s.data().name); });
+          snaps.forEach((s, k) => { if (s.exists()) tx.update(refs[k].r, { stock: (s.data().stock || 0) - refs[k].qty, updatedAt: serverTimestamp() }); });
         }
         tx.update(oref, { status: st, updatedAt: serverTimestamp(), ...(st === 'out' && courier ? { courierId: courier.id, courierName: courier.name, courierPhone: courier.phone } : {}) });
       });

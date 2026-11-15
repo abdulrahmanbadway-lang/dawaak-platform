@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { useAuth } from '../auth.jsx';
 import { go } from '../router.js';
@@ -22,6 +22,11 @@ export default function Cart() {
     if (co.phone.trim().length < 8 || co.address.trim().length < 5) return toast(trs("اكتب رقم الموبايل والعنوان بالتفصيل"));
     setBusy(true);
     try {
+      // مراجعة أخيرة قبل الإرسال: السعر والتوفر ممكن يكونوا اتغيروا من وقت ما ضفت المنتج
+      for (const x of list) {
+        const p = (await getDoc(doc(db, 'products', x.id))).data();
+        if (!p || p.rx || p.price !== x.price || (p.stock || 0) < x.qty) { toast(trs("السعر أو التوفر اتغيّر في: ") + x.name + trs(" — فضّي السلة وضيفه من جديد")); setBusy(false); return; }
+      }
       await addDoc(collection(db, 'orders'), {
         patientId: user.uid, patientName: profile.name, phone: co.phone.trim(), address: co.address.trim(), note: co.note.trim(),
         pharmacyId: cart.pid, pharmacyName: cart.pname,

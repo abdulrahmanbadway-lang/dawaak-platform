@@ -499,7 +499,7 @@ function ContactAdmin() {
 // صور المنتجات: ارفع صورة حقيقية للمنتج وهتتطبق على نفس المنتج في كل الصيدليات (الأدمن بس، والـ Rules بتسمح له يغيّر imageUrl و imgReal بس)
 function ProductImages() {
   const [rows, setRows] = useState(null), [q, setQ] = useState(''), [onlyDemo, setOnlyDemo] = useState(false), [busy, setBusy] = useState(''), [rep, setRep] = useState(null);
-  const load = useCallback(() => getDocs(query(collection(db, 'products'), limit(900))).then((s) => {
+  const load = useCallback(() => getDocs(query(collection(db, 'products'), limit(1600))).then((s) => {
     const m = new Map();
     s.docs.forEach((d) => { const p = d.data(), k = norm(p.name || ''); if (!k) return; const g = m.get(k) || { k, name: p.name, ids: [], img: '', real: true }; g.ids.push(d.id); if (!g.img) g.img = p.imageUrl || ''; if (!p.imgReal) g.real = false; m.set(k, g); });
     setRows([...m.values()].sort((a, b) => a.name.localeCompare(b.name, 'ar')));
