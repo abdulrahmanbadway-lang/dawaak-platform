@@ -106,8 +106,11 @@ service cloud.firestore {
       allow read: if true;
       allow create: if active() && request.resource.data.pharmacyId == request.auth.uid
         && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid)) && imgUrlOk() && metaOk();
-      allow update: if active() && resource.data.pharmacyId == request.auth.uid
-        && request.resource.data.pharmacyId == resource.data.pharmacyId && imgUrlOk() && metaOk();
+      allow update: if (active() && resource.data.pharmacyId == request.auth.uid
+        && request.resource.data.pharmacyId == resource.data.pharmacyId && imgUrlOk() && metaOk())
+        // الأدمن يغيّر صورة المنتج وعلامة "صورة حقيقية" فقط (مفيش تعديل في السعر أو الاسم)
+        || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrl', 'imgReal'])
+        && imgUrlOk() && request.resource.data.get('imgReal', true) is bool);
       // صاحب الصيدلية يحذف منتجه، والأدمن يحذف أي منتج
       allow delete: if (active() && resource.data.pharmacyId == request.auth.uid) || isAdmin();
     }

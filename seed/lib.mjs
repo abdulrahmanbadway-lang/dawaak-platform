@@ -212,7 +212,7 @@ export async function commit(tok, pid, writes) {
   const root = `projects/${pid}/databases/(default)/documents`;
   for (let i = 0; i < writes.length; i += 100) {
     const chunk = writes.slice(i, i + 100).map((w) => w.del ? { delete: `${root}/${w.path}` }
-      : { update: { name: `${root}/${w.path}`, fields: Object.fromEntries(Object.entries(w.data).map(([k, v]) => [k, enc(v)])) } });
+      : { update: { name: `${root}/${w.path}`, fields: Object.fromEntries(Object.entries(w.data).map(([k, v]) => [k, enc(v)])) }, ...(w.mask ? { updateMask: { fieldPaths: w.mask } } : {}) });
     const r = await call(tok, pid, `${FS}/v1/${root}:commit`, { writes: chunk });
     if (!r.ok) throw new Error(`تعذر الكتابة في Firestore: HTTP ${r.status} ${r.t.slice(0, 250)}` + (r.status === 404 ? '\nتأكد إنك عملت قاعدة Firestore (Create database) من Firebase Console.' : ''));
   }

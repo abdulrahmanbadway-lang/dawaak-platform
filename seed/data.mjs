@@ -1,4 +1,4 @@
-// بيانات العرض: أسماء ماركات ومنتجات موجودة فعلاً في السوق المصري. الأسعار تقريبية لأغراض العرض فقط.
+// بيانات العرض: أسماء ماركات ومنتجات موجودة فعلاً في السوق المصري. الأسعار الدوائية رسمية من القاعدة المفتوحة (EDA)، والباقي تقريبي لأغراض العرض.
 // P: [مفتاح، الاسم، المادة الفعالة، الجرعة، الشكل، السعر، روشتة؟، الماركة، القسم، الفرعي، شكل العبوة، لون1، لون2، الكتابة على العبوة، الاستخدام، قبل الخصم]
 const R = (...a) => a;
 export const CAT_WARN = {
@@ -10,6 +10,18 @@ export const CAT_WARN = {
   'المستلزمات الطبية': 'القياس المنزلي لا يغني عن متابعة الطبيب. راجع تعليمات الاستخدام.',
   'الفيتامينات والمكملات': 'مكمل غذائي ولا يغني عن الغذاء المتوازن. استشر الطبيب في الحمل أو مع الأدوية المزمنة.',
   'الصحة الجنسية': 'اقرأ النشرة قبل الاستخدام، واحفظه في مكان بارد وجاف.',
+};
+// أسعار رسمية (جنيه) من قاعدة بيانات الأدوية المصرية المفتوحة (CC0): github.com/karem505/egyptian-drug-database
+// [اسم العبوة في القاعدة، السعر]. المنتجات اللي مش هنا (مستحضرات تجميل وأجهزة وعناية بالطفل) مش موجودة في القاعدة فأسعارها تقريبية.
+const EDA = {
+  'panadol-extra': ['PANADOL EXTRA 24 F.C. TABS.', 54], 'panadol-cold': ['PANADOL COLD & FLU DAY 24 F.C. TABS.', 76], 'paracetamol-500': ['CETAL 500 MG 20 TABS.', 24],
+  'brufen-400': ['BRUFEN 400 MG 30 TABS.', 78], 'cataflam-50': ['CATAFLAM 50 MG 20 SUGAR C.TABS.', 86], 'antinal': ['ANTINAL 200MG 24 CAPS.', 52],
+  'gaviscon': ['GAVISCON ADVANCE SUSP 150 ML', 144], 'buscopan': ['BUSCOPAN 10 MG 20 SUGAR C.TABS.', 56], 'claritine': ['CLARITINE 10MG 20 TAB.', 110],
+  'zyrtec': ['ZYRTEC 10 MG 20 TAB.', 100], 'otrivin': ['OTRIVIN 0.1% ADULT NASAL SPRAY 10 ML', 32], 'strepsils': ['STREPSILS ORIGINAL 24 LOZENGES', 170],
+  'voltaren-emulgel': ['VOLTAREN 1% EMULGEL 50 GM', 68], 'betadine': ['BETADINE ANTISEPTIC SOLN. 10% 120 ML', 85], 'augmentin-1g': ['AUGMENTIN 1 GM 14 F.C.TABS.', 210],
+  'flagyl-500': ['FLAGYL 500MG 20 TAB.', 34], 'glucophage-500': ['GLUCOPHAGE 500 MG 50 F.C.TABS.', 60], 'concor-5': ['CONCOR 5 MG 30 F.C. TABS.', 72],
+  'vit-c-1000': ['REDOXON 1 G 15 EFF. TABS.', 395], 'centrum': ['CENTRUM WITH LUTEIN 30 TABS.', 265], 'nizoral': ['NIZORAL 2% SHAMPOO 60 ML', 68],
+  'minoxidil': ['REGAINE 2 % TOPICAL SOLUTION 60 ML', 370], 'bepanthen': ['BEPANTHEN CREAM 30 GM', 215], 'aptamil-1': ['APTAMIL 1 ADVANCE PREMIUM+ MILK 400 GM', 399],
 };
 export const PRODUCTS = [
   R('panadol-extra','بنادول إكسترا','Paracetamol + Caffeine','500 ملجم + 65 ملجم','قرص',48,false,'Panadol','الأدوية','مسكنات وخافضات حرارة','box','#e53935','#a31515','PANADOL','مسكن للصداع وآلام الجسم وخافض للحرارة.',60),
@@ -75,4 +87,4 @@ export const PRODUCTS = [
   R('preg-test','اختبار حمل منزلي','Pregnancy test','قطعة','أخرى',30,false,'Clearblue','الصحة الجنسية','اختبارات الحمل','box','#ec407a','#ad1457','HCG TEST','اختبار حمل منزلي سريع بنتيجة خلال دقائق.'),
   R('maybelline','ميبيلين ماسكارا','Mascara','قطعة','أخرى',270,false,'Maybelline','المكياج والإكسسوارات','مكياج العيون','tube','#212121','#000000','MAYBELLINE','ماسكارا لتكثيف ورفع الرموش.'),
   R('loreal-lip','لوريال روج','Lipstick','قطعة','أخرى',310,false,'L\'Oréal','المكياج والإكسسوارات','الشفايف','tube','#c2185b','#880e4f','L\'ORÉAL','أحمر شفاه بثبات طويل.'),
-].map(([k, name, ing, dose, form, price, rx, brand, category, sub, kind, c1, c2, label, desc, oldPrice]) => ({ k, name, ing, dose, form, price, rx, brand, category, sub, kind, c1, c2, label, desc, oldPrice: oldPrice || 0, warn: rx ? 'يُصرف بروشتة طبية فقط، ولا تغيّر الجرعة بدون الطبيب.' : CAT_WARN[category] }));
+].map(([k, name, ing, dose, form, price, rx, brand, category, sub, kind, c1, c2, label, desc, oldPrice]) => ({ k, name, ing, dose, form, price, rx, brand, category, sub, kind, c1, c2, label, desc, oldPrice: oldPrice || 0, warn: rx ? 'يُصرف بروشتة طبية فقط، ولا تغيّر الجرعة بدون الطبيب.' : CAT_WARN[category] })).map((p) => (EDA[p.k] ? { ...p, price: EDA[p.k][1] } : p));
