@@ -3,6 +3,7 @@ import { loadCatalog } from '../lib/featured.js';
 import { resolveCat } from '../lib/cats.js';
 import { Icon } from '../icons.jsx';
 import { Badge } from '../ui.jsx';
+import { productImageUrl } from '../lib/img.js';
 import { PCard, FavBtn, addOffer } from '../shopparts.jsx';
 import { km, fmtKm, getPos } from '../lib/geo.js';
 import { useCart, setQty } from '../lib/cart.js';
@@ -25,7 +26,7 @@ export default function Product({ id }) {
     <div className="pdp">
       <p className="mu sm2 crumbs"><a href="#/">{trs("الرئيسية")}</a> ‹ <a href="#/shop">{trs("المتجر")}</a>{c && <> ‹ <a href={'#/shop?cat=' + encodeURIComponent(c)}>{trs(c)}</a></>}{s && <> ‹ <a href={'#/shop?cat=' + encodeURIComponent(c) + '&sub=' + encodeURIComponent(s)}>{trs(s)}</a></>}</p>
       <div className="pdp-top">
-        <div className="pdp-img">{g.imageUrl ? <img src={g.imageUrl} alt={g.name} /> : <Icon n="pill" s={90} />}{g.off > 0 && <em className="off">-{g.off}%</em>}</div>
+        <div className="pdp-img"><img src={productImageUrl(g)} alt={g.name} />{g.off > 0 && <em className="off">-{g.off}%</em>}</div>
         <div className="pdp-info">
           <div className="row between"><h1>{g.name}</h1><FavBtn name={g.name} cls="big" /></div>
           {g.brand && <a className="chip" href={'#/shop?brand=' + encodeURIComponent(g.brand)}>{g.brand}</a>}

@@ -1,3 +1,4 @@
+import { SkelRail } from '../skeleton.jsx';
 import { useEffect, useState } from 'react';
 import { loadHome, loadCatalog } from '../lib/featured.js';
 import { Icon } from '../icons.jsx';
@@ -55,6 +56,7 @@ export default function Home() {
       </section>
 
       <Banners list={h?.banners} />
+      {!cat && <><SkelRail /><SkelRail /></>}
       {shop.length > 0 && <CatTiles products={shop} />}
       {shop.length > 0 && <OffersRail products={shop} phs={cat?.pharmacies} />}
       {shop.length > 0 && <BrandsRow products={shop} />}

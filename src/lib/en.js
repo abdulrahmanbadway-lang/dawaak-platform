@@ -1,6 +1,14 @@
 // English dictionary. Key = the Arabic source string used in trs("...").
 // Missing keys fall back to the Arabic text.
 export default {
+ "الصفحات": "Pages",
+ "السابق": "Previous",
+ "التالي": "Next",
+ "الصفحة السابقة": "Previous page",
+ "الصفحة التالية": "Next page",
+ "صفحة": "Page",
+ "جرّب تمسح الفلاتر أو تغيّر القسم، أو ابحث باسم تاني.": "Try clearing the filters, changing the category, or searching by another name.",
+
  "الرئيسية": "Home",
  "لوحة التحكم": "Dashboard",
  "لوحة الصيدلية": "Pharmacy dashboard",

@@ -7,3 +7,20 @@
 .noimg{color:var(--mu)}
 .phi{color:var(--bl)}
 .btn .ic-svg{position:static;inset:auto}
+
+/* ───── Pagination + skeleton + empty state ───── */
+.pgbar{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:22px 0 8px}
+.pg-b{min-width:40px;height:40px;padding:0 12px;border-radius:12px;border:1.5px solid var(--ln);background:var(--sf);color:var(--tx);font:inherit;font-weight:800;font-size:14px;cursor:pointer;transition:.15s}
+.pg-b:hover:not(:disabled):not(.on){border-color:var(--bl);color:var(--bl)}
+.pg-b.on{background:var(--bl);border-color:var(--bl);color:#fff}
+.pg-b:disabled{opacity:.4;cursor:default}
+.pg-dots{color:var(--mu);padding:0 2px}
+@keyframes skm{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sk{background:linear-gradient(90deg,var(--mt) 25%,var(--ln) 37%,var(--mt) 63%);background-size:400% 100%;animation:skm 1.3s ease-in-out infinite;border-radius:10px}
+.skel{pointer-events:none}.skel:hover{transform:none}
+.sk-i{height:130px;border-radius:14px;margin-bottom:6px}.sk-l{height:13px;width:90%}.sk-l.s{width:55%}.sk-p{height:18px;width:40%;margin-top:4px}.sk-b{height:34px;border-radius:12px;margin-top:6px}
+.sk-h{height:22px;width:140px}
+.pgrid .skel{flex:none}
+.empty-s{text-align:center;padding:34px 18px}.empty-s .eic{width:70px;height:70px;border-radius:50%;background:var(--mt);color:var(--mu);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.empty-s .row{justify-content:center;margin-top:12px}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}

@@ -3,6 +3,7 @@ import { toast } from './ui.jsx';
 import { tdata, trs, pharmWord } from './lib/i18n.js';
 import { addToCart, needsSwitch, clearCart } from './lib/cart.js';
 import { toggleFav, useFavs } from './lib/favs.js';
+import { productImageUrl } from './lib/img.js';
 
 export const pHref = (g) => '#/p/' + encodeURIComponent(g.key || g.name);
 
@@ -29,7 +30,7 @@ export function PCard({ g, phs }) {
   const o = cheapest(g);
   return (
     <div className="rc pc">
-      <a className="rc-i" href={pHref(g)}>{g.imageUrl ? <img src={g.imageUrl} alt={g.name} loading="lazy" /> : <Icon n="pill" s={40} />}{g.off > 0 && <em className="off">-{g.off}%</em>}</a>
+      <a className="rc-i" href={pHref(g)}><img src={productImageUrl(g)} alt={g.name} loading="lazy" decoding="async" />{g.off > 0 && <em className="off">-{g.off}%</em>}</a>
       <FavBtn name={g.name} />
       <a className="rc-n" href={pHref(g)}>{g.name}</a>
       <small className="mu">{[tdata(g.dose), tdata(g.form)].filter(Boolean).join(' · ')}</small>

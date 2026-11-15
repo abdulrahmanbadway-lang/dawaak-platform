@@ -3,11 +3,12 @@ import { Badge } from './ui.jsx';
 import { Icon } from './icons.jsx';
 import './shop.css';
 import { trs, tdata, pharmWord } from './lib/i18n.js';
+import { productImageUrl } from './lib/img.js';
 
 export function ProdCard({ p }) {
   return (
     <a className="pcard" href={'#/search?q=' + encodeURIComponent(p.name)}>
-      <div className="pimg">{p.imageUrl ? <img src={p.imageUrl} alt={p.name} loading="lazy" /> : <span className="pimg-ph"><Icon n="pill" s={46} /></span>}</div>
+      <div className="pimg"><img src={productImageUrl(p)} alt={p.name} loading="lazy" decoding="async" /></div>
       <h3>{p.name}</h3>
       <p className="mu sm2">{[tdata(p.dose), tdata(p.form)].filter(Boolean).join(' · ')}</p>
       <div className="prow"><b className="price">{p.min === p.max ? p.min : trs("من ") + p.min} <small>{trs("ج.م")}</small></b><Badge c="ok">{trs("متاح في")}{" "}{p.count} {pharmWord(p.count)}</Badge></div>

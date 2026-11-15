@@ -13,6 +13,8 @@ import { ProdCard } from '../components.jsx';
 import { trs, tdata } from '../lib/i18n.js';
 import { getWhere, askLocation } from '../lib/where.js';
 import { track } from '../lib/demand.js';
+import { productImageUrl } from '../lib/img.js';
+import { SkelGrid, EmptyState } from '../skeleton.jsx';
 
 async function findProducts(text) {
   const t = norm(text), end = t + '\uf8ff', out = new Map();
@@ -84,7 +86,13 @@ export default function Search({ q }) {
         <select className="fi sel" value={gov} onChange={(e) => setGov(e.target.value)}><option value="">{trs("كل المحافظات")}</option>{GOV.map((g) => <option key={g} value={g}>{trs(g)}</option>)}</select>
       </div>
       {!rows && feat && feat.length > 0 && <><div className="row between wrap"><h2 className="mt">{trs("منتجات متاحة الآن")}</h2><a className="go" href="#/shop">{trs("تصفّح كل المنتجات ◂")}</a></div><div className="pgrid">{feat.map((p) => <ProdCard key={p.name} p={p} />)}</div></>}
-      {groups && !groups.length && <div className="card center"><h3>{trs("مفيش نتايج")}</h3><p className="mu">{trs("جرّب اسم تاني أو المادة الفعالة، أو غيّر المحافظة.")}</p></div>}
+      {!rows && (busy || (!feat && !q.get('q'))) && <SkelGrid n={6} kind="pgrid" />}
+      {groups && !groups.length && (
+        <EmptyState icon="search" title={trs("مفيش نتايج")} text={trs("جرّب اسم تاني أو المادة الفعالة، أو غيّر المحافظة.")}>
+          {gov && <button className="btn" onClick={() => setGov('')}>{trs("كل المحافظات")}</button>}
+          <a className="btn o" href="#/shop">{trs("تصفّح كل المنتجات ◂")}</a>
+          <a className="btn o" href="#/rx/new">{trs("ارفع روشتة")}</a>
+        </EmptyState>)}
       {groups?.map(({ ph, items, d, stock }) => (
         <div className="card ph" key={ph.id}>
           <div className="row between wrap">
@@ -95,7 +103,7 @@ export default function Search({ q }) {
           </div>
           {items.map((p) => (
             <div className="prod" key={p.id}>
-              {p.imageUrl || alt[p.nameLower] ? <img src={p.imageUrl || alt[p.nameLower]} alt={p.name} loading="lazy" /> : <div className="noimg"><Icon n="pill" s={30} /></div>}
+              <img src={productImageUrl({ ...p, imageUrl: p.imageUrl || alt[p.nameLower] })} alt={p.name} loading="lazy" decoding="async" />
               <div className="pi">
                 <b>{p.name}</b> {p.rx && <Badge c="am">{trs("يحتاج روشتة")}</Badge>}
                 <div className="mu sm2">{[tdata(p.dose), tdata(p.form), p.ingredient].filter(Boolean).join(' · ')}</div>
