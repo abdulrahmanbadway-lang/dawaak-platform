@@ -23,7 +23,7 @@ function Orders({ uid, couriers }) {
   const [rows, setRows] = useState(null), [pick, setPick] = useState(null);
   useEffect(() => onSnapshot(query(collection(db, 'orders'), where('pharmacyId', '==', uid)),
     (s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.createdAt) - ms(a.createdAt))),
-    (e) => toast(trs("تعذر تحميل الطلبات: ") + e.message)), [uid]);
+    (e) => toast(trs("تعذر تحميل الطلبات: ") + errMsg(e))), [uid]);
   const [busy, setBusy] = useState(null);
   // تغيير حالة الطلب (وخصم المخزون عند القبول) في معاملة واحدة: يا كله يتنفذ يا ولا حاجة
   const move = async (o, st, courier = null) => {
@@ -42,7 +42,7 @@ function Orders({ uid, couriers }) {
         if (st === 'preparing') clearCatalogCache();
         tx.update(oref, { status: st, updatedAt: serverTimestamp(), ...(st === 'out' && courier ? { courierId: courier.id, courierName: courier.name, courierPhone: courier.phone } : {}) });
       });
-    } catch (e) { toast(trs("تعذر التحديث: ") + e.message); }
+    } catch (e) { toast(trs("تعذر التحديث: ") + errMsg(e)); }
     setBusy(null);
   };
   return (
@@ -104,7 +104,7 @@ function Profile({ uid }) {
     try {
       await updateDoc(doc(db, 'pharmacies', uid), { name: f.name, phone: f.phone, governorate: f.governorate, city: f.city || '', address: f.address, hours: f.hours || '', open: !!f.open, lat, lng });
       toast(trs("تم حفظ بيانات الصيدلية ✓"));
-    } catch (x) { toast(trs("تعذر الحفظ: ") + x.message); }
+    } catch (x) { toast(trs("تعذر الحفظ: ") + errMsg(x)); }
   };
   return (
     <>

@@ -9,6 +9,7 @@ import TileMap, { useSmooth } from '../tilemap.jsx';
 import { Icon } from '../icons.jsx';
 import { toast } from '../ui.jsx';
 import { trs, lcl, tdata } from '../lib/i18n.js';
+import { errMsg } from '../lib/errors.js';
 
 const navUrl = (o) => o.dest
   ? `https://www.google.com/maps/dir/?api=1&destination=${o.dest.lat},${o.dest.lng}&travelmode=driving`
@@ -35,7 +36,7 @@ export default function Courier() {
   const [rows, setRows] = useState(null), [share, setShare] = useState(false), [sent, setSent] = useState(null), [busy, setBusy] = useState(null), [me, setMe] = useState(null), [open, setOpen] = useState(null);
   useEffect(() => onSnapshot(query(collection(db, 'orders'), where('courierId', '==', user.uid)),
     (s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.updatedAt) - ms(a.updatedAt))),
-    (e) => toast(trs("تعذر تحميل التوصيلات: ") + e.message)), [user.uid]);
+    (e) => toast(trs("تعذر تحميل التوصيلات: ") + errMsg(e))), [user.uid]);
   const active = (rows || []).filter((o) => o.status === 'out');
   const ids = active.map((o) => o.id).join(',');
 
@@ -61,7 +62,7 @@ export default function Courier() {
           updatedAt: serverTimestamp(),
         }));
         await b.commit(); setSent({ t: now, acc: Math.round(accuracy) });
-      } catch (x) { toast(trs("تعذر إرسال الموقع: ") + x.message); }
+      } catch (x) { toast(trs("تعذر إرسال الموقع: ") + errMsg(x)); }
     }, (er) => { toast(er.code === 1 ? trs("اسمح بالوصول للموقع من إعدادات المتصفح") : trs("تعذر قراءة الموقع")); setShare(false); },
     { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 });
     return () => { stop = true; navigator.geolocation.clearWatch(wid); if (wl) wl.release(); };
@@ -70,7 +71,7 @@ export default function Courier() {
   const deliver = async (o) => {
     if (!confirm(trs("تأكيد تسليم الطلب لـ ") + o.patientName + trs("؟"))) return;
     setBusy(o.id);
-    try { await updateDoc(doc(db, 'orders', o.id), { status: 'done', updatedAt: serverTimestamp() }); toast(trs("تم التسليم ✓")); } catch (x) { toast(trs("تعذر التحديث: ") + x.message); }
+    try { await updateDoc(doc(db, 'orders', o.id), { status: 'done', updatedAt: serverTimestamp() }); toast(trs("تم التسليم ✓")); } catch (x) { toast(trs("تعذر التحديث: ") + errMsg(x)); }
     setBusy(null);
   };
   const done = (rows || []).filter((o) => o.status === 'done').length;

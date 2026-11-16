@@ -13,6 +13,7 @@ import { RX_LABEL, RX_TONE, RX_OPEN } from '../lib/status.js';
 import { Badge, Field, toast } from '../ui.jsx';
 import { Thumbs, QuoteView, Chat, fmtTime } from '../rxparts.jsx';
 import { trs, tdata } from '../lib/i18n.js';
+import { errMsg } from '../lib/errors.js';
 
 function NewRx({ q }) {
   const { user, profile } = useAuth();
@@ -25,7 +26,7 @@ function NewRx({ q }) {
   useEffect(() => {
     getDocs(query(collection(db, 'pharmacies'), limit(200)))
       .then((s) => setPhs(s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.status === 'active' && p.verified === true)))
-      .catch((e) => { toast(trs("تعذر تحميل الصيدليات: ") + e.message); setPhs([]); });
+      .catch((e) => { toast(trs("تعذر تحميل الصيدليات: ") + errMsg(e)); setPhs([]); });
   }, []);
   const list = useMemo(() => (phs || []).filter((p) => !gov || p.governorate === gov)
     .map((p) => ({ ...p, d: loc && p.lat != null ? km(loc, p) : null }))
@@ -37,7 +38,7 @@ function NewRx({ q }) {
     if (!files.length) return;
     if (imgs.length + files.length > 3) return toast(trs("أقصى حد 3 صور للروشتة"));
     setPrep(true);
-    try { const out = []; for (const x of files) out.push(await rxImage(x)); setImgs((s) => [...s, ...out]); } catch (x) { toast(x.message); }
+    try { const out = []; for (const x of files) out.push(await rxImage(x)); setImgs((s) => [...s, ...out]); } catch (x) { toast(errMsg(x)); }
     setPrep(false);
   };
   const submit = async (e) => {
@@ -54,7 +55,7 @@ function NewRx({ q }) {
         status: 'pending', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       });
       toast(trs("تم إرسال الروشتة للصيدلي ✓")); go('/rx');
-    } catch (x) { toast(trs("تعذر الإرسال: ") + x.message); }
+    } catch (x) { toast(trs("تعذر الإرسال: ") + errMsg(x)); }
     setBusy(false);
   };
 
@@ -107,7 +108,7 @@ function List() {
 
   const cancel = async (r) => {
     if (!confirm(trs("إلغاء الروشتة؟"))) return;
-    try { await updateDoc(doc(db, 'prescriptions', r.id), { status: 'cancelled', updatedAt: serverTimestamp() }); } catch (e) { toast(trs("تعذر الإلغاء: ") + e.message); }
+    try { await updateDoc(doc(db, 'prescriptions', r.id), { status: 'cancelled', updatedAt: serverTimestamp() }); } catch (e) { toast(trs("تعذر الإلغاء: ") + errMsg(e)); }
   };
   // تأكيد عرض الصيدلي: الطلب والروشتة بيتكتبوا في عملية واحدة (batch)، والـ Rules بتتأكد إن الطلب مطابق للعرض بالظبط
   const accept = async (r) => {
@@ -122,7 +123,7 @@ function List() {
       });
       b.update(doc(db, 'prescriptions', r.id), { status: 'ordered', orderId: oref.id, updatedAt: serverTimestamp() });
       await b.commit(); toast(trs("تم تأكيد الطلب ✓")); go('/orders');
-    } catch (x) { toast(trs("تعذر تأكيد الطلب (ممكن الصيدلي عدّل العرض، حدّث الصفحة وراجعه): ") + x.message); }
+    } catch (x) { toast(trs("تعذر تأكيد الطلب (ممكن الصيدلي عدّل العرض، حدّث الصفحة وراجعه): ") + errMsg(x)); }
     setBusy(null);
   };
 

@@ -6,6 +6,7 @@ import { Icon } from '../icons.jsx';
 import { Badge, Field, toast } from '../ui.jsx';
 import { Thumbs, QuoteView, Chat, fmtTime } from '../rxparts.jsx';
 import { trs } from '../lib/i18n.js';
+import { errMsg } from '../lib/errors.js';
 
 const BLANK = { name: '', dose: '', price: '', qty: '1' };
 
@@ -42,7 +43,7 @@ function QuoteModal({ rx, uid, onClose }) {
     try {
       await updateDoc(doc(db, 'prescriptions', rx.id), { status: 'quoted', quote: { items, total: Math.round(items.reduce((s, i) => s + i.price * i.qty, 0) * 100) / 100, note: note.trim() }, updatedAt: serverTimestamp() });
       toast(trs("تم إرسال العرض للمريض ✓")); onClose();
-    } catch (x) { toast(trs("تعذر الإرسال: ") + x.message); }
+    } catch (x) { toast(trs("تعذر الإرسال: ") + errMsg(x)); }
     setBusy(false);
   };
   const stockOf = (l) => (l.productId ? prods.find((p) => p.id === l.productId)?.stock : null);
@@ -83,7 +84,7 @@ function ReplyModal({ rx, uid, mode, onClose }) {
       b.set(doc(collection(db, 'prescriptions', rx.id, 'messages')), { senderId: uid, role: 'pharmacy', text: text.trim(), createdAt: serverTimestamp() });
       b.update(doc(db, 'prescriptions', rx.id), { status: mode, updatedAt: serverTimestamp() });
       await b.commit(); toast(trs("تم الإرسال ✓")); onClose();
-    } catch (x) { toast(trs("تعذر الإرسال: ") + x.message); }
+    } catch (x) { toast(trs("تعذر الإرسال: ") + errMsg(x)); }
     setBusy(false);
   };
   return (

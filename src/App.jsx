@@ -78,9 +78,31 @@ const Footer = () => (
     <div className="fcol sm2" dir="ltr"><span>Graduation Project 2027</span><span>Al-Gazeera Academy</span><span>Class of 2027 Graduates</span></div>
   </div><div className="w fnote">{trs("المحتوى إرشادي ولا يغني عن استشارة الطبيب. في الطوارئ اتصل بالإسعاف 123. بنسجّل عنوان IP والصفحة الحالية والمنطقة التقريبية (لو سمحت بتحديد الموقع) لأغراض الأمان والإحصاء.")}</div></footer>
 );
+const ROLE_HOME = { patient: '/orders', pharmacy: '/pharmacy', courier: '/courier', admin: '/admin' };
+const ROLE_NAME = () => ({ patient: trs("مريض"), pharmacy: trs("صيدلية"), courier: trs("مندوب"), admin: trs("أدمن") });
+// صفحة محتاجة دور معيّن: زائر → دعوة لتسجيل الدخول، مسجّل بدور تاني → "غير مصرّح" بشرح واضح وزر لصفحته
 function Need({ role }) {
+  const { user, profile } = useAuth();
+  if (user && profile && profile.role !== role) return <Forbidden mine={profile.role} need={role} />;
   return <div className="card center"><h2>{trs("محتاج تسجّل دخول")}</h2><p className="mu">{trs("الصفحة دي مخصصة")}{" "}{{ pharmacy: trs("للصيدليات"), admin: trs("لأدمن الموقع"), courier: trs("للمناديب (الصيدلية هي اللي بتعمل حسابك)") }[role] || trs("للمرضى")}.</p>
     <div className="row g"><a className="btn" href="#/login">{trs("دخول")}</a>{role !== 'courier' && role !== 'admin' && <a className="btn o" href={'#/register?role=' + role}>{trs("حساب جديد")}</a>}</div></div>;
+}
+function Forbidden({ mine, need }) {
+  const names = ROLE_NAME();
+  return (
+    <div className="card center nf" role="alert"><span className="eic"><Icon n="shield" s={34} /></span>
+      <h2>{trs("مش مسموح لك بالصفحة دي")}</h2>
+      <p className="mu">{trs("الصفحة دي مخصصة لحساب")}{" "}<b>{names[need] || ''}</b>{trs("، وحسابك الحالي")}{" "}<b>{names[mine] || ''}</b>.</p>
+      <div className="row g wrap"><a className="btn" href={'#' + (ROLE_HOME[mine] || '/')}>{trs("روح لصفحتك")}</a><a className="btn o" href="#/">{trs("الرئيسية")}</a></div></div>
+  );
+}
+function NotFound() {
+  return (
+    <div className="card center nf" role="alert"><span className="eic"><Icon n="search" s={34} /></span>
+      <h2>{trs("الصفحة مش موجودة")}</h2>
+      <p className="mu">{trs("الرابط ده غلط أو الصفحة اتنقلت. جرّب تدوّر على اللي محتاجه.")}</p>
+      <div className="row g wrap"><a className="btn" href="#/">{trs("الرئيسية")}</a><a className="btn o" href="#/shop">{trs("تصفّح المتجر")}</a><a className="btn o" href="#/search">{trs("ابحث عن دوا")}</a></div></div>
+  );
 }
 function Setup() {
   return <div className="w"><div className="card"><h2>{trs("⚙ إعداد Firebase مطلوب")}</h2>
@@ -111,8 +133,9 @@ function Routes() {
   else if (path.startsWith('/track/')) page = role === 'patient' || role === 'pharmacy' ? <Track id={path.split('/')[2]} role={role} /> : <Need role="patient" />;
   else if (path === '/courier') page = role === 'courier' ? <Courier /> : <Need role="courier" />;
   else if (path === '/admin') page = role === 'admin' ? <Admin /> : <Need role="admin" />;
-  else if (path.startsWith('/pharmacy')) page = role === 'pharmacy' ? <PharmacyDash /> : <Need role="pharmacy" />;
-  else page = <Home />;
+  else if (path === '/pharmacy' || path.startsWith('/pharmacy/')) page = role === 'pharmacy' ? <PharmacyDash /> : <Need role="pharmacy" />;
+  else if (path === '/' || path === '') page = <Home />;
+  else page = <NotFound />;
   return <><Header /><main className="w"><ErrorBoundary resetKey={path + '?' + q.toString()}>{page}</ErrorBoundary></main><Footer /><ContactFab /></>;
 }
 function Root() { const lang = useLang(); return <Routes key={lang} />; }

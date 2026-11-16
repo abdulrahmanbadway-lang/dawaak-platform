@@ -9,6 +9,7 @@ import TileMap, { useSmooth } from '../tilemap.jsx';
 import { Icon } from '../icons.jsx';
 import { Steps } from './PatientOrders.jsx';
 import { trs, tdata } from '../lib/i18n.js';
+import { errMsg } from '../lib/errors.js';
 
 const HEAD = {
   new: ['تم استلام طلبك', 'بانتظار قبول الصيدلية'],
@@ -22,7 +23,7 @@ export default function Track({ id, role }) {
   const [o, setO] = useState(null), [tr, setTr] = useState(null), [ph, setPh] = useState(null), [err, setErr] = useState(''), [now, setNow] = useState(Date.now());
   const [trail, setTrail] = useState([]), lastT = useRef(null);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
-  useEffect(() => onSnapshot(doc(db, 'orders', id), (s) => setO(s.exists() ? { id: s.id, ...s.data() } : false), (e) => setErr(e.message)), [id]);
+  useEffect(() => onSnapshot(doc(db, 'orders', id), (s) => setO(s.exists() ? { id: s.id, ...s.data() } : false), (e) => setErr(errMsg(e))), [id]);
   useEffect(() => onSnapshot(doc(db, 'tracking', id), (s) => setTr(s.exists() ? s.data() : null), () => setTr(null)), [id]);
   const pid = o ? o.pharmacyId : null;
   useEffect(() => { if (pid) getDoc(doc(db, 'pharmacies', pid)).then((s) => setPh(s.data() || null)).catch(() => {}); }, [pid]);

@@ -17,7 +17,12 @@ export default function AuthPage({ mode, q }) {
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false), [sent, setSent] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
-  useEffect(() => { if (profile) go({ pharmacy: '/pharmacy', courier: '/courier', admin: '/admin' }[profile.role] || '/search'); }, [profile]);
+  useEffect(() => {
+    if (!profile) return;
+    // لو المريض كان بيكمّل طلب (السلة) قبل ما يسجّل دخول، نرجّعه لنفس المكان
+    let next = ''; try { next = sessionStorage.getItem('dw_next') || ''; sessionStorage.removeItem('dw_next'); } catch { /* ignore */ }
+    go(({ pharmacy: '/pharmacy', courier: '/courier', admin: '/admin' })[profile.role] || (/^\/[a-z]/.test(next) ? next : '/search'));
+  }, [profile]);
 
   const sendReset = async (e) => {
     e.preventDefault(); setErr('');

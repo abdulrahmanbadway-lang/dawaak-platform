@@ -9,6 +9,7 @@ import { toast, Field } from '../ui.jsx';
 import { useCart, setQty, clearCart, cartTotal } from '../lib/cart.js';
 import { trs, tdata } from '../lib/i18n.js';
 import { productImageUrl } from '../lib/img.js';
+import { errMsg } from '../lib/errors.js';
 
 export default function Cart() {
   const { user, profile } = useAuth();
@@ -18,7 +19,7 @@ export default function Cart() {
   if (!list.length) return <div className="card center"><Icon n="cart" s={44} /><h2>{trs("السلة فاضية")}</h2><p className="mu">{trs("ضيف منتجات من المتجر وهتظهر هنا.")}</p><a className="btn" href="#/shop">{trs("تصفّح المتجر")}</a></div>;
   const send = async (e) => {
     e.preventDefault();
-    if (!user) { toast(trs("سجّل دخولك الأول عشان تكمل الطلب")); return go('/login'); }
+    if (!user) { try { sessionStorage.setItem('dw_next', '/cart'); } catch { /* ignore */ } toast(trs("سجّل دخولك الأول عشان تكمل الطلب (السلة هتفضل محفوظة)")); return go('/login'); }
     if (profile?.role !== 'patient') return toast(trs("الطلب متاح لحسابات المرضى فقط"));
     if (co.phone.trim().length < 8 || co.address.trim().length < 5) return toast(trs("اكتب رقم الموبايل والعنوان بالتفصيل"));
     setBusy(true);
@@ -36,7 +37,7 @@ export default function Cart() {
         total, status: 'new', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       });
       toast(trs("تم إرسال طلبك للصيدلية ✓")); clearCart(); go('/orders');
-    } catch (x) { toast(trs("تعذر إرسال الطلب: ") + x.message); }
+    } catch (x) { toast(trs("تعذر إرسال الطلب: ") + errMsg(x)); }
     setBusy(false);
   };
   return (
@@ -56,6 +57,8 @@ export default function Cart() {
       </div>
       <form className="card" onSubmit={send}>
         <h2>{trs("إتمام الطلب")}</h2>
+        {!user && <p className="bd am" role="note">{trs("هتسجّل دخولك الأول وبعدين ترجع هنا تكمل الطلب. السلة هتفضل محفوظة.")}</p>}
+        {user && profile && profile.role !== 'patient' && <p className="bd rd" role="note">{trs("الطلب متاح لحسابات المرضى فقط")}</p>}
         <Field label={trs("رقم الموبايل")} name="phone" type="tel" v={co.phone} on={(v) => setCo({ ...co, phone: v })} dir="ltr" />
         <Field label={trs("عنوان التوصيل")} name="address" v={co.address} on={(v) => setCo({ ...co, address: v })} />
         <DestPick dest={co.dest} onChange={(d) => setCo((c) => ({ ...c, dest: d }))} />

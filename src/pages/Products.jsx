@@ -21,7 +21,7 @@ export default function Products({ uid }) {
     const s = await getDocs(query(collection(db, 'products'), where('pharmacyId', '==', uid)));
     setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name, 'ar')));
   };
-  useEffect(() => { load().catch((e) => toast(trs("تعذر التحميل: ") + e.message)); }, [uid]);
+  useEffect(() => { load().catch((e) => toast(trs("تعذر التحميل: ") + errMsg(e))); }, [uid]);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
   const prev = useMemo(() => (file ? URL.createObjectURL(file) : f?.imageUrl || ''), [file, f?.imageUrl]);
 

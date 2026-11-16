@@ -4,6 +4,7 @@ import { db, createCourierAccount } from '../firebase.js';
 import { authError } from '../auth.jsx';
 import { Badge, Field, toast } from '../ui.jsx';
 import { trs } from '../lib/i18n.js';
+import { errMsg } from '../lib/errors.js';
 
 // مناديب الصيدلية (لحظي)
 export function useCouriers(uid) {
@@ -31,10 +32,10 @@ export default function Couriers({ uid, rows }) {
       setMade({ email, password: f.password, name });
       setF({ name: '', phone: '', email: '', password: '' });
       toast(trs("تم إضافة المندوب ✓"));
-    } catch (x) { toast(x.code ? authError(x) : trs("تعذر إضافة المندوب: ") + x.message); }
+    } catch (x) { toast(x.code ? authError(x) : trs("تعذر إضافة المندوب: ") + errMsg(x)); }
     setBusy(false);
   };
-  const toggle = async (c) => { try { await updateDoc(doc(db, 'couriers', c.id), { active: !c.active }); } catch (x) { toast(trs("تعذر التحديث: ") + x.message); } };
+  const toggle = async (c) => { try { await updateDoc(doc(db, 'couriers', c.id), { active: !c.active }); } catch (x) { toast(trs("تعذر التحديث: ") + errMsg(x)); } };
   return (
     <div>
       {made && <div className="card"><h3>{trs("حساب")}{" "}{made.name} {trs("جاهز ✓")}</h3>

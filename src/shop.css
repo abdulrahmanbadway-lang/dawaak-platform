@@ -24,3 +24,6 @@
 .empty-s{text-align:center;padding:34px 18px}.empty-s .eic{width:70px;height:70px;border-radius:50%;background:var(--mt);color:var(--mu);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
 .empty-s .row{justify-content:center;margin-top:12px}
 @media (prefers-reduced-motion:reduce){.sk{animation:none}}
+.nf{padding:46px 20px}.nf .eic{width:72px;height:72px;border-radius:50%;background:var(--mt);color:var(--bl);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}.nf .row{justify-content:center;margin-top:14px}
+/* موبايل: تبويبات لوحة الصيدلية تتقفل في الشاشة بدل ما تتخبّى على الحافة */
+@media(max-width:560px){main .tabs{gap:0;flex-wrap:wrap;overflow-x:visible}main .tabs::-webkit-scrollbar{display:none}main .tabs button{padding:10px 8px;font-size:13px;flex:1 0 auto}}
