@@ -7,6 +7,7 @@ import { toast } from './ui.jsx';
 import { trs } from './lib/i18n.js';
 import { loadContact, telLink, waLink } from './lib/site.js';
 import './contact.css';
+import { errMsg } from './lib/errors.js';
 
 const MAIL = <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m4 7 8 6 8-6" /></svg>;
 const WA = (
@@ -86,10 +87,10 @@ export function Reviews() {
       const name = profile.name.trim().split(/\s+/)[0].slice(0, 40);
       await setDoc(doc(db, 'reviews', user.uid), { name, rating: f.rating, text, createdAt: mine ? mine.createdAt : serverTimestamp(), updatedAt: serverTimestamp() });
       toast(trs("شكراً على رأيك ✓")); setForm(false); await load();
-    } catch (x) { toast(trs("تعذر حفظ الرأي: ") + (x.code || x.message)); }
+    } catch (x) { toast(trs("تعذر حفظ الرأي: ") + errMsg(x)); }
     setBusy(false);
   };
-  const del = async () => { if (!confirm(trs("تحذف رأيك؟"))) return; try { await deleteDoc(doc(db, 'reviews', user.uid)); setForm(false); await load(); } catch (x) { toast(x.code || x.message); } };
+  const del = async () => { if (!confirm(trs("تحذف رأيك؟"))) return; try { await deleteDoc(doc(db, 'reviews', user.uid)); setForm(false); await load(); } catch (x) { toast(errMsg(x)); } };
   const slide = (d) => { const e = tr.current; if (e) e.scrollBy({ left: d * (e.clientWidth * 0.8), behavior: 'smooth' }); };
   if (rows === null) return null;
   return (

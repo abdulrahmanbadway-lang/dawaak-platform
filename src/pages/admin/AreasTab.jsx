@@ -3,11 +3,12 @@ import { collection, getDocs, limit, query } from 'firebase/firestore';
 import { db } from '../../firebase.js';
 import { nearestGov } from '../../lib/egypt.js';
 import { Empty, Kpi, ago, topN } from './common.jsx';
+import { errMsg } from '../../lib/errors.js';
 
 export default function AreasAdmin({ sessions, orders, users, phs, now }) {
   const [dem, setDem] = useState(null), [sel, setSel] = useState(''), [err, setErr] = useState('');
   useEffect(() => {
-    getDocs(query(collection(db, 'demand'), limit(600))).then((s) => setDem(s.docs.map((d) => ({ id: d.id, ...d.data() })))).catch((e) => setErr(e.code || e.message));
+    getDocs(query(collection(db, 'demand'), limit(600))).then((s) => setDem(s.docs.map((d) => ({ id: d.id, ...d.data() })))).catch((e) => setErr(errMsg(e)));
   }, []);
   const byGov = useMemo(() => {
     const m = {}; const g = (n) => (m[n] ||= { gov: n, vis: new Set(), ord: 0, q: 0, ph: 0 });

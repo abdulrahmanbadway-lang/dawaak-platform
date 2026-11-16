@@ -9,6 +9,9 @@ import { Field, Badge, toast } from '../ui.jsx';
 import { Icon } from '../icons.jsx';
 import '../shop.css';
 import { trs, tdata } from '../lib/i18n.js';
+import { clearCatalogCache } from '../lib/featured.js';
+import { errMsg } from '../lib/errors.js';
+import { productImageUrl } from '../lib/img.js';
 
 const EMPTY = { name: '', ingredient: '', dose: '', form: '', category: '', sub: '', brand: '', oldPrice: '', price: '', stock: '', rx: false, description: '', warnings: '' };
 
@@ -37,12 +40,12 @@ export default function Products({ uid }) {
         dose: f.dose.trim(), form: f.form, category: f.category || '', sub: f.category && subsOf(f.category).includes(f.sub) ? f.sub : '', brand: f.brand.trim().slice(0, 60), oldPrice, price, stock, rx: !!f.rx, description: f.description.trim(), warnings: f.warnings.trim(), imageUrl, updatedAt: serverTimestamp() };
       if (f.id) await updateDoc(doc(db, 'products', f.id), data);
       else await addDoc(collection(db, 'products'), { ...data, createdAt: serverTimestamp() });
-      toast(trs("تم حفظ المنتج ✓")); setF(null); setFile(null); await load();
-    } catch (x) { toast(trs("تعذر الحفظ: ") + x.message); }
+      clearCatalogCache(); toast(trs("تم حفظ المنتج ✓")); setF(null); setFile(null); await load();
+    } catch (x) { toast(trs("تعذر الحفظ: ") + errMsg(x)); }
     setBusy(false);
   };
-  const del = async (p) => { if (!confirm(trs("حذف ") + p.name + trs("؟"))) return; await deleteDoc(doc(db, 'products', p.id)); await load(); };
-  const bump = async (p, n) => { const stock = Math.max(0, p.stock + n); await updateDoc(doc(db, 'products', p.id), { stock, updatedAt: serverTimestamp() }); await load(); };
+  const del = async (p) => { if (!confirm(trs("حذف ") + p.name + trs("؟"))) return; await deleteDoc(doc(db, 'products', p.id)); clearCatalogCache(); await load(); };
+  const bump = async (p, n) => { const stock = Math.max(0, p.stock + n); await updateDoc(doc(db, 'products', p.id), { stock, updatedAt: serverTimestamp() }); clearCatalogCache(); await load(); };
 
   if (f) return (
     <form className="card narrow" onSubmit={save}>
@@ -78,7 +81,7 @@ export default function Products({ uid }) {
       {rows && !rows.length && <div className="card center"><p className="mu">{trs("لسه مضفتش منتجات. ابدأ بإضافة أول دوا.")}</p></div>}
       {shown.map((p) => (
         <div className="card prod" key={p.id}>
-          {p.imageUrl ? <img src={p.imageUrl} alt="" /> : <div className="noimg"><Icon n="pill" s={30} /></div>}
+          <img src={productImageUrl(p)} alt="" loading="lazy" />
           <div className="pi"><b>{p.name}</b> {p.rx && <Badge c="am">{trs("روشتة")}</Badge>}<div className="mu sm2">{[tdata(p.dose), tdata(p.form), p.ingredient].filter(Boolean).join(' · ')}</div>
             <div><b className="dist">{p.price} {trs("ج.م")}</b> · <Badge c={p.stock > 0 ? (p.stock < 5 ? 'am' : 'ok') : 'rd'}>{p.stock > 0 ? trs("المتاح: ") + p.stock : trs("نفد")}</Badge></div></div>
           <div className="pr"><div className="qty"><button onClick={() => bump(p, -1)}>−</button><span>{p.stock}</span><button onClick={() => bump(p, 1)}>＋</button></div>

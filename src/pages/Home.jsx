@@ -1,4 +1,4 @@
-import { SkelRail } from '../skeleton.jsx';
+import { SkelRail, ErrorState } from '../skeleton.jsx';
 import { useEffect, useState } from 'react';
 import { loadHome, loadCatalog } from '../lib/featured.js';
 import { Icon } from '../icons.jsx';
@@ -20,7 +20,9 @@ export default function Home() {
   const [q, setQ] = useState('');
   const [h, setH] = useState(null);
   const [cat, setCat] = useState(null);
-  useEffect(() => { loadHome().then(setH).catch(() => setH({ pharmacies: [], products: [], stats: null })); loadCatalog().then(setCat).catch(() => {}); }, []);
+  const [catErr, setCatErr] = useState(null);
+  const load = (force) => { setCatErr(null); loadHome(force).then(setH).catch(() => setH({ pharmacies: [], products: [], stats: null })); loadCatalog(force).then(setCat).catch(setCatErr); };
+  useEffect(() => { load(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const prods = h?.products || [], shop = cat?.products || [], phs = h?.pharmacies || [];
   const allPhs = phs.length ? phs : Object.values(cat?.pharmacies || {});
   const fp = prods[0];
@@ -56,7 +58,8 @@ export default function Home() {
       </section>
 
       <Banners list={h?.banners} />
-      {!cat && <><SkelRail /><SkelRail /></>}
+      {!cat && !catErr && <><SkelRail /><SkelRail /></>}
+      {catErr && <ErrorState error={catErr} onRetry={() => load(true)} />}
       {shop.length > 0 && <CatTiles products={shop} />}
       {shop.length > 0 && <OffersRail products={shop} phs={cat?.pharmacies} />}
       {shop.length > 0 && <BrandsRow products={shop} />}

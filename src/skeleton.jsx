@@ -1,3 +1,7 @@
+import { Icon } from './icons.jsx';
+import { errMsg, errKind } from './lib/errors.js';
+import { trs } from './lib/i18n.js';
+
 // هياكل تحميل (skeleton) لكروت المنتجات: بتظهر مكان المنتجات لحد ما البيانات توصل
 export function SkelCard() {
   return (
@@ -20,7 +24,6 @@ export function SkelRail({ title = true }) {
 }
 
 // حالة "مفيش نتايج": أيقونة + عنوان + شرح + أزرار (إعادة ضبط الفلاتر مثلاً)
-import { Icon } from './icons.jsx';
 export function EmptyState({ icon = 'search', title, text, children }) {
   return (
     <div className="card empty-s" role="status">
@@ -28,6 +31,19 @@ export function EmptyState({ icon = 'search', title, text, children }) {
       <h3>{title}</h3>
       {text && <p className="mu">{text}</p>}
       {children && <div className="row g wrap">{children}</div>}
+    </div>
+  );
+}
+
+// حالة الخطأ في تحميل بيانات: رسالة مفهومة + زر إعادة المحاولة (error = الاستثناء نفسه)
+export function ErrorState({ error, onRetry, title }) {
+  const k = errKind(error);
+  return (
+    <div className="card empty-s" role="alert">
+      <span className="eic"><Icon n={k === 'net' ? 'bolt' : 'shield'} s={30} /></span>
+      <h3>{title || (k === 'perm' ? trs("مفيش صلاحية") : k === 'net' ? trs("مشكلة في الاتصال") : trs("تعذر تحميل البيانات"))}</h3>
+      <p className="mu">{errMsg(error)}</p>
+      {onRetry && <div className="row g wrap"><button className="btn" onClick={onRetry}>{trs("إعادة المحاولة")}</button></div>}
     </div>
   );
 }

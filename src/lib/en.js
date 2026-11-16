@@ -1,6 +1,25 @@
 // English dictionary. Key = the Arabic source string used in trs("...").
 // Missing keys fall back to the Arabic text.
 export default {
+ " منتج. استخدم البحث للوصول لباقي المنتجات.": " products. Use search to find the rest.",
+ "إعادة المحاولة": "Try again",
+ "إعادة تحميل": "Reload",
+ "الخدمة مشغولة دلوقتي (حد الاستخدام المجاني اتعدّى). جرّب بعد شوية.": "The service is busy right now (free usage limit reached). Please try again in a bit.",
+ "الصفحة دي مفتحتش صح. جرّب تعيد التحميل، ولو المشكلة استمرت ارجع للرئيسية.": "This page didn't open correctly. Try reloading; if it keeps happening, go back to the home page.",
+ "العملية دي مش ممكنة في الحالة الحالية. حدّث الصفحة وجرّب تاني.": "This action isn't possible in the current state. Refresh the page and try again.",
+ "المطلوب مش موجود.": "Not found.",
+ "بنعرض أول ": "Showing the first ",
+ "تعذر تحميل البيانات": "Couldn't load the data",
+ "تعذر تحميل المنتجات": "Couldn't load products",
+ "حصل خطأ غير متوقع.": "An unexpected error occurred.",
+ "حصلت مشكلة غير متوقعة": "Something unexpected went wrong",
+ "لازم تسجّل دخول الأول.": "Please sign in first.",
+ "مشكلة في الاتصال": "Connection problem",
+ "مفيش اتصال بالإنترنت أو الخدمة مش متاحة دلوقتي. اتأكد من الشبكة وجرّب تاني.": "No internet connection or the service is unavailable. Check your network and try again.",
+ "مفيش صلاحية": "No permission",
+ "مفيش صلاحية لتنفيذ ده. لو المفروض تقدر، سجّل خروج وادخل تاني.": "You don't have permission to do this. If you should, sign out and sign in again.",
+ "ممكن يكون نفد من كل الصيدليات أو اتشال.": "It may be out of stock everywhere or removed.",
+
  "الصفحات": "Pages",
  "السابق": "Previous",
  "التالي": "Next",

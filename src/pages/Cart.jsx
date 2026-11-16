@@ -8,6 +8,7 @@ import { DestPick } from '../areas.jsx';
 import { toast, Field } from '../ui.jsx';
 import { useCart, setQty, clearCart, cartTotal } from '../lib/cart.js';
 import { trs, tdata } from '../lib/i18n.js';
+import { productImageUrl } from '../lib/img.js';
 
 export default function Cart() {
   const { user, profile } = useAuth();
@@ -44,7 +45,7 @@ export default function Cart() {
       <p className="mu">{trs("من")}{" "}<b>{cart.pname}</b></p>
       <div className="card">{list.map((x) => (
         <div className="prod" key={x.id}>
-          {x.imageUrl ? <img src={x.imageUrl} alt={x.name} /> : <div className="noimg"><Icon n="pill" s={30} /></div>}
+          <img src={productImageUrl(x)} alt={x.name} loading="lazy" />
           <div className="pi"><b>{x.name}</b><div className="mu sm2">{tdata(x.dose)}</div></div>
           <div className="pr"><b>{x.price * x.qty} {trs("ج.م")}</b>
             <div className="qty"><button onClick={() => setQty(x.id, x.qty - 1)}>−</button><span>{x.qty}</span><button onClick={() => setQty(x.id, x.qty + 1)}>＋</button></div></div>

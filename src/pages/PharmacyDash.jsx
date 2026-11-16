@@ -14,6 +14,8 @@ import Couriers, { useCouriers } from './Couriers.jsx';
 import { useRx } from '../lib/rx.js';
 import { Steps } from './PatientOrders.jsx';
 import { trs, tdata } from '../lib/i18n.js';
+import { errMsg } from '../lib/errors.js';
+import { clearCatalogCache } from '../lib/featured.js';
 
 const NEXT = { new: [['preparing', 'قبول وتجهيز', ''], ['cancelled', 'رفض', 'o']], preparing: [['out', 'خرج للتوصيل', '']], out: [['done', 'تم التسليم', 'g']] };
 
@@ -37,6 +39,7 @@ function Orders({ uid, couriers }) {
           snaps.forEach((s, k) => { if (s.exists() && (s.data().stock || 0) < refs[k].qty) throw new Error(trs("المخزون مش كفاية لـ ") + s.data().name); });
           snaps.forEach((s, k) => { if (s.exists()) tx.update(refs[k].r, { stock: (s.data().stock || 0) - refs[k].qty, updatedAt: serverTimestamp() }); });
         }
+        if (st === 'preparing') clearCatalogCache();
         tx.update(oref, { status: st, updatedAt: serverTimestamp(), ...(st === 'out' && courier ? { courierId: courier.id, courierName: courier.name, courierPhone: courier.phone } : {}) });
       });
     } catch (e) { toast(trs("تعذر التحديث: ") + e.message); }
@@ -76,7 +79,7 @@ function DocsCard({ uid, verified }) {
     try {
       await setDoc(doc(db, 'pharmacyDocs', uid), { commercial: docs.commercial, tax: docs.tax, license: docs.license, createdAt: cur ? cur.createdAt : serverTimestamp(), updatedAt: serverTimestamp() });
       setCur({ ...docs, createdAt: cur ? cur.createdAt : new Date() }); toast(trs("تم إرسال المستندات للمراجعة ✓"));
-    } catch (x) { toast(trs("تعذر الإرسال: ") + (x.code || x.message)); }
+    } catch (x) { toast(trs("تعذر الإرسال: ") + errMsg(x)); }
     setBusy(false);
   };
   return (

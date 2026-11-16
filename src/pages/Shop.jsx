@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { loadCatalog } from '../lib/featured.js';
+import { loadCatalog, LIMITS } from '../lib/featured.js';
 import { TREE, resolveCat, subsOf } from '../lib/cats.js';
 import { norm } from '../lib/text.js';
 import { Icon } from '../icons.jsx';
@@ -7,7 +7,7 @@ import { PCard } from '../shopparts.jsx';
 import { trs } from '../lib/i18n.js';
 import { useFavs } from '../lib/favs.js';
 import { usePagination, PaginationBar } from '../lib/paginate.js';
-import { SkelGrid, EmptyState } from '../skeleton.jsx';
+import { SkelGrid, EmptyState, ErrorState } from '../skeleton.jsx';
 
 const PAGE_SIZE = 24;
 
@@ -18,9 +18,10 @@ export default function Shop({ q }) {
   const [cat, setCat] = useState(q.get('cat') || ''), [sub, setSub] = useState(q.get('sub') || ''), [brand, setBrand] = useState(q.get('brand') || '');
   const [form, setForm] = useState(''), [mn, setMn] = useState(''), [mx, setMx] = useState(''), [offers, setOffers] = useState(q.get('offers') === '1');
   const [fav, setFav] = useState(q.get('fav') === '1'), [text, setText] = useState(''), [sort, setSort] = useState(offers ? 'off' : 'rel'), [open, setOpen] = useState(false);
-  const [data, setData] = useState(null), [err, setErr] = useState('');
+  const [data, setData] = useState(null), [err, setErr] = useState(null);
   const favs = useFavs();
-  useEffect(() => { loadCatalog().then(setData).catch((e) => setErr(e.code || e.message)); }, []);
+  const load = (force) => { setErr(null); setData(null); loadCatalog(force).then(setData).catch(setErr); };
+  useEffect(() => { load(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const all = data?.products || [];
   const withCat = useMemo(() => all.map((g) => { const [c, s] = resolveCat(g); return { ...g, c, s }; }), [all]);
   const base = useMemo(() => withCat.filter((g) => (!offers || g.off > 0) && (!fav || favs.includes(g.name))
@@ -70,7 +71,7 @@ export default function Shop({ q }) {
       <div className="shgrid" ref={top}>
         <aside className="shside">{filters}</aside>
         <div>
-          {err && <div className="card center"><p className="mu">{trs("تعذر تحميل المنتجات: ")}{err}</p></div>}
+          {err && <ErrorState error={err} onRetry={() => load(true)} title={trs("تعذر تحميل المنتجات")} />}
           {!data && !err && <SkelGrid n={8} />}
           {data && <p className="mu sm2">{rows.length} {trs("منتج")}{pg.totalPages > 1 && <> · {trs("صفحة")} {pg.page} / {pg.totalPages}</>}</p>}
           {data && !rows.length && (
@@ -80,6 +81,7 @@ export default function Shop({ q }) {
             </EmptyState>)}
           {data && <div className="rgrid">{pg.pageItems.map((g) => <PCard key={g.key} g={g} phs={data.pharmacies} />)}</div>}
           {data && <PaginationBar {...pg} onChange={toTop} />}
+          {data?.truncated && <p className="mu sm2 center">{trs("بنعرض أول ")}{LIMITS.catalog}{trs(" منتج. استخدم البحث للوصول لباقي المنتجات.")}</p>}
         </div>
       </div>
       {open && <div className="mo shmo" onClick={(e) => e.target === e.currentTarget && setOpen(false)}><div className="card narrow shdr"><div className="row between"><h3>{trs("فلاتر")}</h3><button className="ic" onClick={() => setOpen(false)} aria-label={trs("إغلاق")}><Icon n="x" s={18} /></button></div>{filters}<button className="btn g" onClick={() => setOpen(false)}>{trs("عرض")} {rows.length} {trs("منتج")}</button></div></div>}

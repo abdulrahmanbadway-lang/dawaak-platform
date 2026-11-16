@@ -4,13 +4,14 @@ import { db } from '../../firebase.js';
 import { RX_LABEL, RX_TONE } from '../../lib/status.js';
 import { Badge, toast } from '../../ui.jsx';
 import { Empty, ago, dt, money, ms } from './common.jsx';
+import { errMsg } from '../../lib/errors.js';
 
 export default function RxAdmin({ now }) {
   const [rows, setRows] = useState(null), [st, setSt] = useState('');
   useEffect(() => {
     getDocs(query(collection(db, 'prescriptions'), orderBy('createdAt', 'desc'), limit(200)))
       .then((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() }))))
-      .catch((e) => toast('تعذر تحميل الروشتات: ' + (e.code || e.message)));
+      .catch((e) => toast('تعذر تحميل الروشتات: ' + errMsg(e)));
   }, []);
   const list = (rows || []).filter((r) => !st || r.status === st);
   return (

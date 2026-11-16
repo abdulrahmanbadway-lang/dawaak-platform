@@ -5,6 +5,7 @@ import { Badge, toast } from '../../ui.jsx';
 import { Icon } from '../../icons.jsx';
 import { bannerImage } from '../../lib/img.js';
 import { Empty } from './common.jsx';
+import { errMsg } from '../../lib/errors.js';
 
 export default function BannersAdmin() {
   const E = { title: '', sub: '', link: '', imageUrl: '', active: true };
@@ -13,7 +14,7 @@ export default function BannersAdmin() {
     const s = await getDocs(query(collection(db, 'banners'), limit(50)));
     setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order || 0) - (b.order || 0)));
   }, []);
-  useEffect(() => { load().catch((e) => toast('تعذر تحميل الإعلانات: ' + (e.code || e.message))); }, [load]);
+  useEffect(() => { load().catch((e) => toast('تعذر تحميل الإعلانات: ' + errMsg(e))); }, [load]);
   const pick = async (e) => {
     const file = e.target.files?.[0]; e.target.value = '';
     if (!file) return;
@@ -30,11 +31,11 @@ export default function BannersAdmin() {
       const order = Math.max(0, ...(rows || []).map((r) => r.order || 0)) + 1;
       await addDoc(collection(db, 'banners'), { title, sub, link, imageUrl: f.imageUrl, order, active: f.active, createdAt: serverTimestamp() });
       setF(E); toast('تمت إضافة الإعلان ✓'); await load();
-    } catch (x) { toast('تعذر الحفظ: ' + (x.code || x.message)); } finally { setBusy(false); }
+    } catch (x) { toast('تعذر الحفظ: ' + errMsg(x)); } finally { setBusy(false); }
   };
   const upd = async (b, patch) => {
     try { await updateDoc(doc(db, 'banners', b.id), patch); setRows((l) => l.map((x) => (x.id === b.id ? { ...x, ...patch } : x))); }
-    catch (x) { toast('تعذر التعديل: ' + (x.code || x.message)); }
+    catch (x) { toast('تعذر التعديل: ' + errMsg(x)); }
   };
   const move = async (k, d) => {
     const a = rows[k], b = rows[k + d]; if (!a || !b) return;
@@ -44,7 +45,7 @@ export default function BannersAdmin() {
   const del = async (b) => {
     if (!confirm('حذف الإعلان ده؟')) return;
     try { await deleteDoc(doc(db, 'banners', b.id)); setRows((l) => l.filter((x) => x.id !== b.id)); toast('تم الحذف ✓'); }
-    catch (x) { toast('تعذر الحذف: ' + (x.code || x.message)); }
+    catch (x) { toast('تعذر الحذف: ' + errMsg(x)); }
   };
   return (
     <>

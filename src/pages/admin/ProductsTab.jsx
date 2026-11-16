@@ -4,6 +4,8 @@ import { db } from '../../firebase.js';
 import { Badge, toast } from '../../ui.jsx';
 import { Icon } from '../../icons.jsx';
 import { Empty, money } from './common.jsx';
+import { errMsg } from '../../lib/errors.js';
+import { clearCatalogCache } from '../../lib/featured.js';
 
 export default function ProductsAdmin({ phs }) {
   const [rows, setRows] = useState(null), [q, setQ] = useState(''), [ph, setPh] = useState('');
@@ -11,12 +13,12 @@ export default function ProductsAdmin({ phs }) {
     const s = await getDocs(query(collection(db, 'products'), limit(500)));
     setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })));
   }, []);
-  useEffect(() => { load().catch((e) => toast('تعذر تحميل المنتجات: ' + (e.code || e.message))); }, [load]);
+  useEffect(() => { load().catch((e) => toast('تعذر تحميل المنتجات: ' + errMsg(e))); }, [load]);
   const nameOf = (id) => (phs || []).find((p) => p.id === id)?.name || id.slice(0, 6);
   const del = async (p) => {
     if (!confirm(`حذف "${p.name}" من ${nameOf(p.pharmacyId)}؟\nالحذف نهائي.`)) return;
-    try { await deleteDoc(doc(db, 'products', p.id)); setRows((l) => l.filter((x) => x.id !== p.id)); toast('تم الحذف ✓'); }
-    catch (e) { toast('تعذر الحذف: ' + (e.code || e.message)); }
+    try { await deleteDoc(doc(db, 'products', p.id)); clearCatalogCache(); setRows((l) => l.filter((x) => x.id !== p.id)); toast('تم الحذف ✓'); }
+    catch (e) { toast('تعذر الحذف: ' + errMsg(e)); }
   };
   const list = (rows || []).filter((p) => (!ph || p.pharmacyId === ph) && (!q || [p.name, p.ingredient].join(' ').toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ar'));

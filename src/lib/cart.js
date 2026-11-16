@@ -15,7 +15,8 @@ export const cartTotal = (c = cart) => Object.values(c.items).reduce((s, x) => s
 export const clearCart = () => save(empty());
 export function addToCart(p, ph) {
   // p: مستند منتج (id, pharmacyId, name, dose, price, stock, imageUrl) · ph: اسم الصيدلية
-  const snap = { id: p.id, name: p.name, dose: p.dose || '', price: p.price, stock: p.stock, imageUrl: p.imageUrl || '' };
+  // الصورة بتتخزن في السلة بس لو خفيفة (الصور الكبيرة بتتحسب من القسم)
+  const snap = { id: p.id, name: p.name, dose: p.dose || '', price: p.price, stock: p.stock, category: p.category || '', imageUrl: (p.imageUrl || '').length <= 20000 ? p.imageUrl || '' : '' };
   const cur = cart.pid === p.pharmacyId ? cart.items[p.id]?.qty || 0 : 0;
   if (cur >= p.stock) return 'max';
   const base = cart.pid === p.pharmacyId ? cart : { pid: p.pharmacyId, pname: ph || '', items: {} };

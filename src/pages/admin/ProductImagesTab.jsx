@@ -4,6 +4,8 @@ import { db } from '../../firebase.js';
 import { Badge, toast } from '../../ui.jsx';
 import { productImage } from '../../lib/img.js';
 import { norm } from '../../lib/text.js';
+import { errMsg } from '../../lib/errors.js';
+import { clearCatalogCache } from '../../lib/featured.js';
 
 // صور المنتجات: ارفع صورة حقيقية للمنتج وهتتطبق على نفس المنتج في كل الصيدليات (الأدمن بس، والـ Rules بتسمح له يغيّر imageUrl و imgReal بس)
 export default function ProductImages() {
@@ -12,17 +14,18 @@ export default function ProductImages() {
     const m = new Map();
     s.docs.forEach((d) => { const p = d.data(), k = norm(p.name || ''); if (!k) return; const g = m.get(k) || { k, name: p.name, ids: [], img: '', real: true }; g.ids.push(d.id); if (!g.img) g.img = p.imageUrl || ''; if (!p.imgReal) g.real = false; m.set(k, g); });
     setRows([...m.values()].sort((a, b) => a.name.localeCompare(b.name, 'ar')));
-  }).catch((e) => { toast('تعذر التحميل: ' + (e.code || e.message)); setRows([]); }), []);
+  }).catch((e) => { toast('تعذر التحميل: ' + errMsg(e)); setRows([]); }), []);
   useEffect(() => { load(); }, [load]);
   const apply = async (g, file) => {
     const url = await productImage(file);
     for (let i = 0; i < g.ids.length; i += 20) { const b = writeBatch(db); g.ids.slice(i, i + 20).forEach((id) => b.update(doc(db, 'products', id), { imageUrl: url, imgReal: true })); await b.commit(); }
+    clearCatalogCache();
     return url;
   };
   const one = async (g, file) => {
     if (!file) return; setBusy(g.k);
     try { const url = await apply(g, file); setRows((r) => r.map((x) => (x.k === g.k ? { ...x, img: url, real: true } : x))); toast('اتغيّرت صورة ' + g.name + ' في ' + g.ids.length + ' صيدلية ✓'); }
-    catch (x) { toast('تعذر: ' + (x.code || x.message)); }
+    catch (x) { toast('تعذر: ' + errMsg(x)); }
     setBusy('');
   };
   // رفع جماعي: اسم الملف = اسم المنتج (مثلاً "بنادول اكسترا.jpg")

@@ -4,6 +4,7 @@ import { CATS, catHue, resolveCat } from './lib/cats.js';
 import { PCard } from './shopparts.jsx';
 import { trs, tdata } from './lib/i18n.js';
 import './home.css';
+import { categoryPlaceholder } from './lib/img.js';
 
 const SAFE = /^(#\/|https:\/\/)/;
 // إعلانات جاهزة بتظهر لما الأدمن ما يكونش ضاف إعلانات. دي مزايا حقيقية في الموقع مش عروض.
@@ -63,7 +64,7 @@ export function CatTiles({ products }) {
       <div className="sech"><h2>{trs("الأقسام")}</h2></div>
       <div className="cats">{cats.map((c) => { const im = by[c].find((p) => p.imageUrl); return (
         <a key={c} className="cat" href={c === 'أخرى' ? '#/shop' : '#/shop?cat=' + encodeURIComponent(c)} style={{ '--h': catHue(c) }}>
-          <span className="cat-i">{im ? <img src={im.imageUrl} alt="" loading="lazy" /> : <Icon n="pill" s={30} />}</span>
+          <span className="cat-i"><img src={im ? im.imageUrl : categoryPlaceholder(c, c)} alt="" loading="lazy" /></span>
           <b>{trs(c)}</b><small>{by[c].length}</small>
         </a>); })}</div>
     </section>

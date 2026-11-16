@@ -18,6 +18,7 @@ import OrdersTab from './admin/OrdersTab.jsx';
 import RxTab from './admin/RxTab.jsx';
 import SystemTab from './admin/SystemTab.jsx';
 import '../admin.css';
+import { errMsg } from '../lib/errors.js';
 
 function useData() {
   const [pres, setPres] = useState(null), [orders, setOrders] = useState(null), [users, setUsers] = useState(null), [phs, setPhs] = useState(null), [err, setErr] = useState('');
@@ -25,11 +26,11 @@ function useData() {
     try {
       const [u, p] = await Promise.all([getDocs(collection(db, 'users')), getDocs(collection(db, 'pharmacies'))]);
       setUsers(u.docs.map((d) => ({ id: d.id, ...d.data() }))); setPhs(p.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (e) { setErr(e.code || e.message); }
+    } catch (e) { setErr(errMsg(e)); }
   }, []);
   useEffect(() => {
     loadStatic();
-    const bad = (e) => setErr(e.code || e.message);
+    const bad = (e) => setErr(errMsg(e));
     const a = onSnapshot(query(collection(db, 'presence'), orderBy('lastSeen', 'desc'), limit(300)), (s) => setPres(s.docs.map((d) => ({ id: d.id, ...d.data() }))), bad);
     const b = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(200)), (s) => setOrders(s.docs.map((d) => ({ id: d.id, ...d.data() }))), bad);
     return () => { a(); b(); };

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { collection, deleteDoc, doc, getDocs, limit, query } from 'firebase/firestore';
 import { db } from '../../firebase.js';
 import { toast } from '../../ui.jsx';
+import { errMsg } from '../../lib/errors.js';
 
 export default function ReviewsAdmin() {
   const [rows, setRows] = useState(null);
-  const load = useCallback(() => getDocs(query(collection(db, 'reviews'), limit(100))).then((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)))).catch((e) => { toast('تعذر التحميل: ' + (e.code || e.message)); setRows([]); }), []);
+  const load = useCallback(() => getDocs(query(collection(db, 'reviews'), limit(100))).then((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)))).catch((e) => { toast('تعذر التحميل: ' + errMsg(e)); setRows([]); }), []);
   useEffect(() => { load(); }, [load]);
-  const del = async (r) => { if (!confirm('تحذف رأي ' + r.name + '؟')) return; try { await deleteDoc(doc(db, 'reviews', r.id)); await load(); } catch (x) { toast(x.code || x.message); } };
+  const del = async (r) => { if (!confirm('تحذف رأي ' + r.name + '؟')) return; try { await deleteDoc(doc(db, 'reviews', r.id)); await load(); } catch (x) { toast(errMsg(x)); } };
   if (!rows) return <p className="mu">جاري التحميل…</p>;
   const avg = rows.length ? (rows.reduce((s, r) => s + (r.rating || 0), 0) / rows.length).toFixed(1) : '—';
   return (

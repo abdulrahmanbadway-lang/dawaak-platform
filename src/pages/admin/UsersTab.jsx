@@ -4,6 +4,7 @@ import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth, db } from '../../firebase.js';
 import { Badge, toast } from '../../ui.jsx';
 import { Dot, Empty, ROLE, ago, csvText, download, dt, ms } from './common.jsx';
+import { errMsg } from '../../lib/errors.js';
 
 export default function Users({ users, setUsers, sessions, now, onlineIds, meId }) {
   const [q, setQ] = useState(''), [role, setRole] = useState('');
@@ -17,19 +18,19 @@ export default function Users({ users, setUsers, sessions, now, onlineIds, meId 
     try {
       await updateDoc(doc(db, 'users', u.id), { blocked: on, blockedAt: serverTimestamp() });
       setUsers((l) => l.map((x) => (x.id === u.id ? { ...x, blocked: on } : x))); toast(on ? 'تم الحظر ✓' : 'تم فك الحظر ✓');
-    } catch (e) { toast('تعذر التنفيذ: ' + (e.code || e.message)); }
+    } catch (e) { toast('تعذر التنفيذ: ' + errMsg(e)); }
   };
   const setAdmin = async (u, on) => {
     if (!confirm(on ? `ترقية ${u.name} (${u.email}) لأدمن؟\nهيبقى له كل صلاحياتك: يشوف كل البيانات، يحظر ويحذف ويرقّي أدمن تاني.` : `سحب صلاحية الأدمن من ${u.name}؟ هيرجع حساب مريض.`)) return;
     try {
       await updateDoc(doc(db, 'users', u.id), { role: on ? 'admin' : 'patient' });
       setUsers((l) => l.map((x) => (x.id === u.id ? { ...x, role: on ? 'admin' : 'patient' } : x))); toast(on ? 'تمت الترقية لأدمن ✓' : 'تم سحب الصلاحية ✓');
-    } catch (e) { toast('تعذر التنفيذ: ' + (e.code || e.message)); }
+    } catch (e) { toast('تعذر التنفيذ: ' + errMsg(e)); }
   };
   const reset = async (u) => {
     if (!confirm(`نبعت رابط تعيين كلمة سر جديدة على ${u.email}؟`)) return;
     try { await sendPasswordResetEmail(auth, u.email); toast('اتبعت الرابط على ' + u.email); }
-    catch (e) { toast('تعذر الإرسال: ' + (e.code || e.message)); }
+    catch (e) { toast('تعذر الإرسال: ' + errMsg(e)); }
   };
   return (
     <>

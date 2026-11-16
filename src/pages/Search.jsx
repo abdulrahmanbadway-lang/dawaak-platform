@@ -14,6 +14,8 @@ import { trs, tdata } from '../lib/i18n.js';
 import { getWhere, askLocation } from '../lib/where.js';
 import { track } from '../lib/demand.js';
 import { productImageUrl } from '../lib/img.js';
+import { errMsg } from '../lib/errors.js';
+import { usePagination, PaginationBar } from '../lib/paginate.js';
 import { SkelGrid, EmptyState } from '../skeleton.jsx';
 
 async function findProducts(text) {
@@ -31,7 +33,7 @@ export default function Search({ q }) {
   const [loc, setLoc] = useState(() => { const w = getWhere(); return w && w.lat != null ? { lat: w.lat, lng: w.lng } : null; }), [gov, setGov] = useState(''), [busy, setBusy] = useState(false);
   const cart = useCart();
   const [feat, setFeat] = useState(null);
-  useEffect(() => { if (!q.get('q')) loadHome().then((h) => setFeat(h.products)).catch(() => {}); }, []);
+  useEffect(() => { if (!q.get('q')) loadHome().then((h) => setFeat(h.products.slice(0, 12))).catch(() => setFeat([])); }, []);
 
   const run = async (e) => {
     e?.preventDefault();
@@ -46,7 +48,7 @@ export default function Search({ q }) {
       }));
       setPhs(m);
       setRows(ps.filter((p) => m[p.pharmacyId] && m[p.pharmacyId].status === 'active' && m[p.pharmacyId].verified === true));
-    } catch (x) { toast(trs("تعذر البحث: ") + x.message); }
+    } catch (x) { toast(trs("تعذر البحث: ") + errMsg(x)); }
     setBusy(false);
   };
   useEffect(() => { if (text) run(); }, []);
@@ -69,6 +71,8 @@ export default function Search({ q }) {
       .sort((a, b) => (b.stock - a.stock) || ((a.d ?? 1e9) - (b.d ?? 1e9)) || ((getWhere()?.gov === b.ph.governorate) - (getWhere()?.gov === a.ph.governorate)));
   }, [rows, phs, loc, gov]);
 
+  const pg = usePagination(groups || [], 6);
+  useEffect(() => { pg.setPage(1); }, [gov, rows]); // eslint-disable-line react-hooks/exhaustive-deps
   const add = (p) => addOffer(p, phs[p.pharmacyId]?.name);
   const inCart = (p) => (cart.pid === p.pharmacyId ? cart.items[p.id]?.qty || 0 : 0);
   const n = Object.values(cart.items).reduce((a, x) => a + x.qty, 0), total = Object.values(cart.items).reduce((a, x) => a + x.price * x.qty, 0);
@@ -93,7 +97,7 @@ export default function Search({ q }) {
           <a className="btn o" href="#/shop">{trs("تصفّح كل المنتجات ◂")}</a>
           <a className="btn o" href="#/rx/new">{trs("ارفع روشتة")}</a>
         </EmptyState>)}
-      {groups?.map(({ ph, items, d, stock }) => (
+      {groups && pg.pageItems.map(({ ph, items, d, stock }) => (
         <div className="card ph" key={ph.id}>
           <div className="row between wrap">
             <div><h3>{ph.name}</h3>
@@ -119,6 +123,7 @@ export default function Search({ q }) {
           ))}
         </div>
       ))}
+      {groups && groups.length > 0 && <PaginationBar {...pg} onChange={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />}
       {n > 0 && <div className="cartbar"><span>{n} {trs("عنصر ·")}{" "}<b>{total} {trs("ج.م")}</b> · {cart.pname}</span><a className="btn g" href="#/cart">{trs("عرض السلة")}</a></div>}
     </div>
   );

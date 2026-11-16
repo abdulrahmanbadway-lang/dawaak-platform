@@ -4,6 +4,7 @@ import { resolveCat } from '../lib/cats.js';
 import { Icon } from '../icons.jsx';
 import { Badge } from '../ui.jsx';
 import { productImageUrl } from '../lib/img.js';
+import { SkelGrid, EmptyState, ErrorState } from '../skeleton.jsx';
 import { PCard, FavBtn, addOffer } from '../shopparts.jsx';
 import { km, fmtKm, getPos } from '../lib/geo.js';
 import { useCart, setQty } from '../lib/cart.js';
@@ -11,17 +12,19 @@ import { toast } from '../ui.jsx';
 import { trs, tdata, pharmWord } from '../lib/i18n.js';
 
 export default function Product({ id }) {
-  const [d, setD] = useState(null), [loc, setLoc] = useState(null);
+  const [d, setD] = useState(null), [loc, setLoc] = useState(null), [err, setErr] = useState(null);
   const cart = useCart();
-  useEffect(() => { loadCatalog().then(setD).catch(() => setD({ products: [], pharmacies: {} })); }, []);
+  const load = (force) => { setErr(null); loadCatalog(force).then(setD).catch(setErr); };
+  useEffect(() => { load(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const key = decodeURIComponent(id || '');
   const g = d?.products.find((x) => x.key === key || x.name === key);
   const [c, s] = g ? resolveCat(g) : ['', ''];
   const offers = useMemo(() => (g ? g.offers.map((o) => ({ o, ph: d.pharmacies[o.pharmacyId], dist: loc && d.pharmacies[o.pharmacyId]?.lat != null ? km(loc, d.pharmacies[o.pharmacyId]) : null }))
     .sort((a, b) => ((b.o.stock > 0) - (a.o.stock > 0)) || ((a.dist ?? 1e9) - (b.dist ?? 1e9)) || a.o.price - b.o.price) : []), [g, d, loc]);
   const similar = useMemo(() => (g ? d.products.filter((x) => x.key !== g.key && resolveCat(x)[0] === c && c).slice(0, 12) : []), [g, d, c]);
-  if (!d) return <div className="center mu">{trs("جاري التحميل…")}</div>;
-  if (!g) return <div className="card center"><h2>{trs("المنتج مش موجود أو مش متاح دلوقتي")}</h2><a className="btn" href="#/shop">{trs("تصفّح المتجر")}</a></div>;
+  if (err) return <ErrorState error={err} onRetry={() => load(true)} />;
+  if (!d) return <div className="pdp"><div className="pdp-top"><div className="sk sk-i" style={{ height: 280 }}></div><div><div className="sk sk-h" style={{ width: '70%', height: 28 }}></div><div className="sk sk-l" style={{ marginTop: 14 }}></div><div className="sk sk-p" style={{ marginTop: 14 }}></div></div></div></div>;
+  if (!g) return <EmptyState icon="search" title={trs("المنتج مش موجود أو مش متاح دلوقتي")} text={trs("ممكن يكون نفد من كل الصيدليات أو اتشال.")}><a className="btn" href="#/shop">{trs("تصفّح المتجر")}</a></EmptyState>;
   return (
     <div className="pdp">
       <p className="mu sm2 crumbs"><a href="#/">{trs("الرئيسية")}</a> ‹ <a href="#/shop">{trs("المتجر")}</a>{c && <> ‹ <a href={'#/shop?cat=' + encodeURIComponent(c)}>{trs(c)}</a></>}{s && <> ‹ <a href={'#/shop?cat=' + encodeURIComponent(c) + '&sub=' + encodeURIComponent(s)}>{trs(s)}</a></>}</p>

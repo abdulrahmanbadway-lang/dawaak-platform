@@ -3,6 +3,7 @@ import { doc, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase.js';
 import { toast } from '../../ui.jsx';
 import { STALE_MS } from './common.jsx';
+import { errMsg } from '../../lib/errors.js';
 
 export default function System({ sessions, now }) {
   const [busy, setBusy] = useState(false);
@@ -13,7 +14,7 @@ export default function System({ sessions, now }) {
     try {
       for (let i = 0; i < stale.length; i += 400) { const b = writeBatch(db); stale.slice(i, i + 400).forEach((s) => b.delete(doc(db, 'presence', s.id))); await b.commit(); }
       toast('تم المسح ✓');
-    } catch (e) { toast('تعذر المسح: ' + (e.code || e.message)); }
+    } catch (e) { toast('تعذر المسح: ' + errMsg(e)); }
     setBusy(false);
   };
   return (
