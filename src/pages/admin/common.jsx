@@ -42,3 +42,61 @@ export const Empty = ({ children }) => <div className="adm-empty">{children}</di
 export const Dot = ({ on }) => <i className={'adm-dot' + (on ? ' on' : '')} title={on ? 'متصل الآن' : 'غير متصل'} />;
 // ───── المناطق: مين فين، وعايزين إيه (بيانات تقريبية: المحافظة + إحداثيات متقرّبة لحوالي 1 كم، وبس للي سمح بالموقع) ─────
 export const topN = (m, n = 8) => Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, n);
+
+// ───── نافذة تأكيد موحّدة بدل confirm() ─────
+// askConfirm({ title, text, ok, danger, type }) → Promise<boolean>. type = كلمة لازم المستخدم يكتبها عشان الإجراء الخطير يتنفّذ.
+let confirmSet = null;
+export const askConfirm = (o) => new Promise((res) => { if (confirmSet) confirmSet({ ...o, res }); else res(window.confirm((o.title || '') + '\n' + (o.text || ''))); });
+export function ConfirmHost() {
+  const [o, setO] = useState(null), [typed, setTyped] = useState('');
+  useEffect(() => { confirmSet = (x) => { setTyped(''); setO(x); }; return () => { confirmSet = null; }; }, []);
+  useEffect(() => {
+    if (!o) return undefined;
+    const k = (e) => { if (e.key === 'Escape') done(false); };
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
+  }); // eslint-disable-line
+  if (!o) return null;
+  const done = (v) => { o.res(v); setO(null); };
+  const okOff = o.type && typed.trim() !== o.type;
+  return (
+    <div className="adm-ov" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) done(false); }}>
+      <div className="adm-dlg" role="alertdialog" aria-modal="true" aria-label={o.title}>
+        <h3>{o.title}</h3>
+        {o.text && <p className="mu" style={{ whiteSpace: 'pre-line' }}>{o.text}</p>}
+        {o.type && <div className="fd"><label>اكتب <b>{o.type}</b> للتأكيد</label><input className="fi" autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} /></div>}
+        <div className="row g end">
+          <button className="btn o sm" onClick={() => done(false)}>إلغاء</button>
+          <button className={'btn sm' + (o.danger ? ' dg' : '')} disabled={okOff} onClick={() => done(true)}>{o.ok || 'تأكيد'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// نافذة تفاصيل (طلب، روشتة…)
+export function Modal({ title, onClose, children }) {
+  useEffect(() => { const k = (e) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
+  return (
+    <div className="adm-ov" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="adm-dlg wide" role="dialog" aria-modal="true" aria-label={title}>
+        <div className="row between g"><h3>{title}</h3><button className="btn o sm" onClick={onClose} aria-label="إغلاق">إغلاق</button></div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// هيكل جدول أثناء التحميل (داخل التبويب نفسه)
+export const TableSkel = ({ rows = 6 }) => (
+  <div className="card adm-tw adm-skt" role="status" aria-busy="true" aria-label="جاري التحميل">
+    {Array.from({ length: rows }, (_, i) => <div key={i} className="adm-skr"><i className="sk" /><i className="sk" /><i className="sk" /><i className="sk" /></div>)}
+  </div>
+);
+
+// شريط ملخّص صغير: [[label, value, tone?]]
+export const Chips = ({ items }) => <div className="adm-chips">{items.filter(Boolean).map(([l, v, t]) => <span key={l} className={t || ''}>{l}: <b>{v}</b></span>)}</div>;
+
+// أزرار تبديل سريعة للفلاتر: opts = [[value,label,count?]]
+export const Seg = ({ v, on, opts }) => (
+  <div className="adm-seg" role="group">{opts.map(([k, l, n]) => <button key={k} className={v === k ? 'on' : ''} onClick={() => on(k)}>{l}{n != null ? ` (${n})` : ''}</button>)}</div>
+);
