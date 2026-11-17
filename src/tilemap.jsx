@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { fitZoom, project, unproject, mPerPx, TILE } from './lib/map.js';
 import { Icon } from './icons.jsx';
 import { trs } from './lib/i18n.js';
@@ -32,7 +32,7 @@ export function useSmooth(p, ms = 900) {
 
 // خريطة تفاعلية خفيفة (سحب + تكبير بالعجلة/الإصبعين/الأزرار) فوق بلاطات CARTO/OpenStreetMap، من غير مكتبة ولا API key
 // markers: [{ id, kind: 'pharmacy'|'dest'|'courier', lat, lng, label, heading, acc }]   route/trail: [[lat,lng],…]
-export default function TileMap({ markers, route, trail, height = 380 }) {
+function TileMapBase({ markers, route, trail, height = 380 }) {
   const box = useRef(null), [size, setSize] = useState({ w: 360, h: height }), [dark, setDark] = useState(isDark());
   const [view, setView] = useState(null), [follow, setFollow] = useState(true);
   const ptrs = useRef(new Map()), pinch = useRef(null), vref = useRef(null);
@@ -134,3 +134,6 @@ export default function TileMap({ markers, route, trail, height = 380 }) {
     </div>
   );
 }
+
+// memo: لو الخصائص ما اتغيّرتش (مثلاً تحديث الساعة في الصفحة) الخريطة ما بتتعيدش رسمها
+export default memo(TileMapBase);

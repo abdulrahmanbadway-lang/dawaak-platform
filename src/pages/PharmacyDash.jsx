@@ -16,13 +16,14 @@ import { Steps } from './PatientOrders.jsx';
 import { trs, tdata } from '../lib/i18n.js';
 import { errMsg } from '../lib/errors.js';
 import { clearCatalogCache } from '../lib/featured.js';
+import { pharmacyActions } from '../lib/delivery.js';
 
-const NEXT = { new: [['preparing', 'قبول وتجهيز', ''], ['cancelled', 'رفض', 'o']], preparing: [['out', 'خرج للتوصيل', '']], out: [['done', 'تم التسليم', 'g']] };
+const RANK = { new: 0, preparing: 1, out: 2, done: 3, cancelled: 4 };
 
 function Orders({ uid, couriers }) {
-  const [rows, setRows] = useState(null), [pick, setPick] = useState(null);
+  const [rows, setRows] = useState(null), [pick, setPick] = useState(null), [conf, setConf] = useState(null);
   useEffect(() => onSnapshot(query(collection(db, 'orders'), where('pharmacyId', '==', uid)),
-    (s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.createdAt) - ms(a.createdAt))),
+    (s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (RANK[a.status] - RANK[b.status]) || (ms(b.createdAt) - ms(a.createdAt)))),
     (e) => toast(trs("تعذر تحميل الطلبات: ") + errMsg(e))), [uid]);
   const [busy, setBusy] = useState(null);
   // تغيير حالة الطلب (وخصم المخزون عند القبول) في معاملة واحدة: يا كله يتنفذ يا ولا حاجة
@@ -55,9 +56,17 @@ function Orders({ uid, couriers }) {
             <p className="mu sm2" dir="ltr" style={{ textAlign: 'right' }}>{o.phone}</p><p className="mu sm2">{o.address}</p>{o.note && <p className="sm2">{trs("ملاحظة:")}{" "}{o.note}</p>}</div><b className="dist">{o.total} {trs("ج.م")}</b></div>
           <ul className="items">{o.items.map((i, k) => <li key={k}>{i.name} {i.dose && '(' + tdata(i.dose) + ')'} × {i.qty}</li>)}</ul>
           <Steps status={o.status} />
-          <div className="row g wrap">{(NEXT[o.status] || []).map(([st, l, c]) => <button key={st} className={'btn sm ' + c} disabled={busy === o.id} onClick={() => (st === 'out' && couriers.length ? setPick(o) : move(o, st))}>{trs(l)}</button>)}</div>
+          {o.status === 'preparing' && <p className="mu sm2">{trs("جهّز الطلب وبعدين اضغط \"خرج للتوصيل\" واختار المندوب.")}</p>}
+          {o.status === 'out' && !o.courierId && <p className="mu sm2">{trs("الطلب بيتوصّل من غير مندوب: العميل مش هيشوف تتبع، وإنت اللي هتقفله.")}</p>}
+          <div className="row g wrap pact">{pharmacyActions(o).map(([st, l, c, q]) => <button key={st} className={'btn ' + c} disabled={busy === o.id} onClick={() => (q ? setConf({ o, st, q, l }) : st === 'out' && couriers.length ? setPick(o) : move(o, st))}>{busy === o.id ? '…' : trs(l)}</button>)}</div>
         </div>
       ))}
+      {conf && <div className="mo" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && setConf(null)}><div className="card narrow">
+        <h2>{trs(conf.l)}</h2><p className="mu">{trs(conf.q)}</p>
+        <p className="sm2"><b>{conf.o.patientName}</b> · {conf.o.total} {trs("ج.م")}</p>
+        <button className={'btn full' + (conf.st === 'cancelled' ? ' dg' : ' g')} onClick={() => { const c = conf; setConf(null); move(c.o, c.st); }}>{trs("تأكيد")}</button>
+        <button className="btn o full" onClick={() => setConf(null)}>{trs("رجوع")}</button>
+      </div></div>}
       {pick && <div className="mo" onClick={(e) => e.target === e.currentTarget && setPick(null)}><div className="card narrow">
         <h2>{trs("مين هيوصّل الطلب؟")}</h2><p className="mu sm2">{trs("اختار مندوب عشان العميل يتابعه على الخريطة.")}</p>
         {couriers.map((c) => <button key={c.id} className="btn o full" onClick={() => { move(pick, 'out', c); setPick(null); }}>{c.name} · {c.phone}</button>)}

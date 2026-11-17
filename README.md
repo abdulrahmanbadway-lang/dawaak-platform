@@ -20,6 +20,17 @@ React 18 + Vite · Firebase (Authentication + Firestore + Hosting) على خطة
 | `seed/` | بيانات العرض: `seed.mjs` بيضيف، `clear.mjs` بيمسح |
 | `tools/precheck-public.sh` | فحص الأسرار قبل نشر الـ Repo للعامة |
 | `deploy.sh` | بناء + نشر Firebase + رفع على GitHub |
+| `tools/preflight.sh` | فحص جاهزية قبل الإطلاق (إعدادات، قواعد، بناء، أسرار) |
+| `docs/` | قائمة الإطلاق، الاختبارات اليدوية لكل دور، مراجعة قواعد الأمان |
+
+## قبل الإطلاق (Pre-launch checklist)
+1. `bash tools/preflight.sh` لازم يطلع ✓ (إعدادات Firebase، وجود الحمايات في القواعد، البناء، الأسرار).
+2. `firebase deploy --only firestore:rules,hosting` ثم `bash deploy.sh "launch"`.
+3. اعمل [الاختبارات اليدوية](docs/MANUAL-TESTS.md) لكل دور (مريض/صيدلية/مندوب/أدمن) واختبارات الأمان فيها.
+4. راجع [مراجعة القواعد](docs/RULES-REVIEW.md) لمعرفة اللي بتفرضه القواعد فعلًا واللي لأ.
+5. الكتالوج: المنتجات من غير صورة حقيقية بتتعرض بصورة بديلة حسب القسم (مش صور مزيفة). الصور الحقيقية بتترفع من لوحة التحكم ← المحتوى ← صور المنتجات.
+6. ما تشغّلش `seed/` على موقع عليه بيانات حقيقية.
+7. أول أدمن بيتعمل يدويًا من Firebase Console (انظر "أول أدمن").
 
 ## التشغيل المحلي
 ```bash
@@ -59,7 +70,7 @@ node seed/clear.mjs                               # بيمسحها
 ## نموذج البيانات (Firestore)
 | المجموعة | الوصف |
 |---|---|
-| users/{uid} | الاسم، البريد، الدور (patient أو pharmacy) |
+| users/{uid} | الاسم، البريد، الدور (patient / pharmacy / courier / admin)، blocked |
 | pharmacies/{uid} | بيانات الصيدلية، الموقع lat/lng، مفتوحة/مغلقة، verified |
 | products/{id} | pharmacyId، الاسم، المادة الفعالة، الجرعة، السعر، الكمية، rx، الصورة، التفاصيل |
 | orders/{id} | patientId، pharmacyId، العناصر، الإجمالي، الحالة، dest (نقطة التوصيل اللي أكدها المريض) |
@@ -67,6 +78,7 @@ node seed/clear.mjs                               # بيمسحها
 | reviews/{uid} | رأي واحد لكل مريض (الاسم الأول، تقييم 1-5، نص) |
 | settings/contact | إيميل/واتساب/تليفون التواصل (الأدمن بس يكتب) |
 | demand/{id} | عدّاد بحث وإضافة للسلة حسب المحافظة (الأدمن بس يقرأ) |
+| banners/{id} | إعلانات الرئيسية (الأدمن بس يكتب) |
 | presence/{id} | تواجد الزوار: المحافظة وإحداثيات تقريبية (~1 كم) فقط |
 
 | prescriptions/{id} | الروشتة: patientId، pharmacyId، images (لحد 3 صور JPEG مضغوطة)، الحالة، عرض الصيدلي quote |

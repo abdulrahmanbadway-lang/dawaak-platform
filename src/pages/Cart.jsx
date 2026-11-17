@@ -22,6 +22,7 @@ export default function Cart() {
     if (!user) { try { sessionStorage.setItem('dw_next', '/cart'); } catch { /* ignore */ } toast(trs("سجّل دخولك الأول عشان تكمل الطلب (السلة هتفضل محفوظة)")); return go('/login'); }
     if (profile?.role !== 'patient') return toast(trs("الطلب متاح لحسابات المرضى فقط"));
     if (co.phone.trim().length < 8 || co.address.trim().length < 5) return toast(trs("اكتب رقم الموبايل والعنوان بالتفصيل"));
+    if (co.phone.trim().length > 20 || co.address.trim().length > 300 || co.note.trim().length > 500) return toast(trs("رقم الموبايل أو العنوان أو الملاحظة أطول من المسموح"));
     setBusy(true);
     try {
       // مراجعة أخيرة قبل الإرسال: السعر والتوفر ممكن يكونوا اتغيروا من وقت ما ضفت المنتج

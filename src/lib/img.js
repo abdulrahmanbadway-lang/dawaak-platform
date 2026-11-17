@@ -131,6 +131,6 @@ export function categoryPlaceholder(category = '', name = '') {
   phCache.set(key, url);
   return url;
 }
-export const isRealImage = (u) => typeof u === 'string' && /^(data:image\/(jpeg|png|webp);base64,|https?:\/\/)/.test(u);
+export const isRealImage = (u) => typeof u === 'string' && /^(data:image\/(jpeg|png|webp);base64,|https?:\/\/)/.test(u) && !/placehold\.co|placeholder\.com|dummyimage\.com|picsum\.photos/i.test(u);
 // صورة المنتج للعرض: الحقيقية لو موجودة، وإلا صورة القسم البديلة
 export const productImageUrl = (p) => (p && isRealImage(p.imageUrl) ? p.imageUrl : categoryPlaceholder(p?.category || '', p?.name || ''));

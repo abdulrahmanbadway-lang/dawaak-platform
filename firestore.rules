@@ -103,11 +103,18 @@ service cloud.firestore {
           && d.get('brand', '') is string && d.get('brand', '').size() <= 60
           && d.get('oldPrice', 0) is number && (d.get('oldPrice', 0) == 0 || d.get('oldPrice', 0) > d.price);
       }
+      // السعر رقم موجب والكمية رقم ≥ 0 والاسم نص معقول (مفيش أسعار سالبة أو بيانات بالشكل الغلط)
+      function valOk() {
+        let d = request.resource.data;
+        return d.price is number && d.price > 0 && d.price <= 1000000
+          && d.get('stock', 0) is number && d.get('stock', 0) >= 0
+          && d.name is string && d.name.size() >= 2 && d.name.size() <= 150;
+      }
       allow read: if true;
       allow create: if active() && request.resource.data.pharmacyId == request.auth.uid
-        && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid)) && imgUrlOk() && metaOk();
+        && exists(/databases/$(database)/documents/pharmacies/$(request.auth.uid)) && imgUrlOk() && metaOk() && valOk();
       allow update: if (active() && resource.data.pharmacyId == request.auth.uid
-        && request.resource.data.pharmacyId == resource.data.pharmacyId && imgUrlOk() && metaOk())
+        && request.resource.data.pharmacyId == resource.data.pharmacyId && imgUrlOk() && metaOk() && valOk())
         // الأدمن يغيّر صورة المنتج وعلامة "صورة حقيقية" فقط (مفيش تعديل في السعر أو الاسم)
         || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrl', 'imgReal'])
         && imgUrlOk() && request.resource.data.get('imgReal', true) is bool);
@@ -288,7 +295,7 @@ service cloud.firestore {
       function rxLinked() {
         let d = request.resource.data;
         let r = rxOf(d.prescriptionId);
-        return d.source == 'rx' && r.patientId == request.auth.uid && r.pharmacyId == d.pharmacyId
+        return d.source == 'rx' && r.patientId == request.auth.uid && r.pharmacyId == d.pharmacyId && r.pharmacyName == d.pharmacyName
           && r.status == 'quoted' && d.total == r.quote.total && d.items == r.quote.items;
       }
       // الصيدلية بتعيّن مندوبها هي (شغّال ومربوط بيها)، والاسم والموبايل لازم يطابقوا ملفه
@@ -314,12 +321,27 @@ service cloud.firestore {
       function cartOk() {
         let d = request.resource.data;
         return !('source' in d) && d.items.size() <= 8
+          && d.patientName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
           && itemAt(0) && itemAt(1) && itemAt(2) && itemAt(3) && itemAt(4) && itemAt(5) && itemAt(6) && itemAt(7)
           && d.total == lineAt(0) + lineAt(1) + lineAt(2) + lineAt(3) + lineAt(4) + lineAt(5) + lineAt(6) + lineAt(7)
           && exists(/databases/$(database)/documents/pharmacies/$(d.pharmacyId));
       }
 
-      allow create: if isPatient()
+      // شكل بيانات الطلب: أنواع وأحجام الحقول وتوقيت السيرفر (مفيش تواريخ مزوّرة ولا نصوص ضخمة)
+      function shapeOk() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['patientId', 'patientName', 'phone', 'address', 'pharmacyId', 'pharmacyName', 'items', 'total', 'status', 'createdAt', 'updatedAt'])
+          && d.patientName is string && d.patientName.size() > 0 && d.patientName.size() <= 80
+          && d.pharmacyName is string && d.pharmacyName.size() <= 100
+          && d.pharmacyId is string
+          && d.phone is string && d.phone.size() >= 8 && d.phone.size() <= 20
+          && d.address is string && d.address.size() >= 5 && d.address.size() <= 300
+          && (!('note' in d) || (d.note is string && d.note.size() <= 500))
+          && d.total is number && d.total > 0 && d.total < 1000000
+          && d.createdAt == request.time && d.updatedAt == request.time;
+      }
+
+      allow create: if isPatient() && shapeOk()
         && request.resource.data.keys().hasOnly(['patientId', 'patientName', 'phone', 'address', 'note', 'pharmacyId', 'pharmacyName', 'items', 'total', 'status', 'createdAt', 'updatedAt', 'dest', 'source', 'prescriptionId'])
         && request.resource.data.patientId == request.auth.uid
         && request.resource.data.status == 'new'

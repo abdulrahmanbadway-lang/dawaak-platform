@@ -146,3 +146,59 @@ html,body{max-width:100%;overflow-x:clip}
   .hd .dn a{font-size:0;gap:0;padding:9px 11px}
 }
 @media (max-width:330px){.hd .ua .btn.sm{padding:6px 7px}}
+
+/* ═════════ المرحلة: توحيد المسافات والألوان + تدفق التوصيل ═════════ */
+:root{--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--r1:12px;--r2:16px;--r3:20px;
+  --ok:#0a7a54;--warn:#9a6a00;--err:#c0392b;--ok-bg:#E3F6EE;--warn-bg:#FFF0CC;--err-bg:#FDE3DF}
+:root[data-theme="dark"]{--ok:#4fd1a1;--warn:#f2c14e;--err:#ff8a78;--ok-bg:#0f3a2f;--warn-bg:#3a2e0e;--err-bg:#40201b}
+.btn.dg{background:var(--rd);border-color:var(--rd);color:#fff}.btn.dg:disabled{opacity:.45;cursor:not-allowed}
+.btn:disabled{cursor:not-allowed}
+.card{border-radius:var(--r3)}
+main .card+.card,main .card+.trk-map,main .trk-map+.card{margin-top:var(--s4)}
+
+/* كروت المنتجات: صورة مربعة، أزرار بنفس الارتفاع، زرار الإضافة تحت دايمًا */
+.rc{border-radius:var(--r3);gap:var(--s1)}
+.rc-i{height:auto;aspect-ratio:1/1;border-radius:var(--r1)}
+.rc-n{min-height:2.7em;font-weight:700}
+.rc>.btn{margin-top:auto;width:100%;min-height:42px;padding-block:8px}
+.rc-p{font-size:18px}.rc>small{line-height:1.5}
+.fav{width:36px;height:36px}
+@media(hover:hover){.rc:hover{transform:translateY(-3px);box-shadow:var(--sh2)}}
+@media(hover:none){.rc:hover{transform:none}}
+
+/* صفحة التتبع: رسالة الحالة بنبرتها (ok/warn/err) */
+.trk-hero{border-inline-start:6px solid var(--ln)}
+.trk-hero.tone-ok{border-inline-start-color:var(--gr)}.trk-hero.tone-warn{border-inline-start-color:var(--am);background:linear-gradient(135deg,var(--sf) 40%,var(--warn-bg))}
+.trk-hero.tone-err{border-inline-start-color:var(--rd);background:linear-gradient(135deg,var(--sf) 40%,var(--err-bg))}
+.trk-hero.tone-warn .trk-ttl h2{color:var(--warn)}.trk-hero.tone-err .trk-ttl h2{color:var(--err)}
+.trk-eta.ok{background:var(--gr);display:flex;flex-direction:column;align-items:center;gap:2px}
+.trk-addr .btn{min-height:48px}
+.crd .btn{min-height:48px;min-width:110px}
+
+/* صفحة المندوب: كارت المشاركة الكبير */
+.shr{background:var(--sf);border:2px solid var(--ln);border-radius:var(--r3);padding:var(--s4);display:grid;gap:var(--s3);margin-bottom:var(--s4);text-align:center}
+.shr-st{display:flex;align-items:center;justify-content:center;gap:var(--s3)}
+.shr-st b{font-size:44px;font-weight:900;line-height:1;letter-spacing:1px}.shr-st span{font-size:16px;font-weight:700}
+.shr-dot{width:18px;height:18px;border-radius:50%;background:var(--rd)}
+.shr.on{border-color:var(--gr);background:linear-gradient(180deg,var(--ok-bg),var(--sf))}.shr.on .shr-st b{color:var(--ok)}.shr.on .shr-dot{background:var(--gr);animation:pulse 1.6s infinite}
+.shr.off .shr-st b{color:var(--mu)}
+.shr.warn{border-color:var(--rd);background:linear-gradient(180deg,var(--err-bg),var(--sf))}.shr.warn .shr-st b{color:var(--err)}
+.shr-tx{font-size:15px;color:var(--mu);margin:0}.shr.warn .shr-tx{color:var(--err);font-weight:800}
+.shr-btn{min-height:64px;font-size:19px;width:100%;border-radius:var(--r2)}
+.shr .btn.o{border-color:var(--rd);color:var(--rd)}
+.dl-addr{display:flex;gap:var(--s2);align-items:flex-start;font-size:18px;font-weight:800;margin:var(--s2) 0}
+.dl-addr .ic-svg{color:var(--bl);margin-top:5px}
+.dl-note{background:var(--warn-bg);color:var(--warn);border-radius:var(--r1);padding:var(--s2) var(--s3);display:flex;gap:var(--s2);margin:var(--s2) 0;font-weight:700}
+.dl-pay{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);background:var(--mt);border-radius:var(--r2);padding:var(--s3) var(--s4);margin:var(--s3) 0}
+.dl-pay b{font-size:24px;color:var(--ok)}.dl-pay span{font-size:14px;font-weight:700}
+.dl-act .btn{min-height:56px;font-size:16px;border-radius:var(--r2)}.dl-act .btn.g{min-height:64px;font-size:19px}
+.dl-more{margin-top:var(--s3);border-top:1px dashed var(--ln);padding-top:var(--s2)}.dl-more summary{cursor:pointer;font-weight:700;color:var(--bl);padding:var(--s2) 0}
+.dl-ask p{margin:var(--s2) 0}.dl-ask .btn{min-height:54px;font-size:17px}
+
+/* لوحة الصيدلية: أزرار الإجراءات */
+.pact{margin-top:var(--s3)}.pact .btn{min-height:46px;flex:1 1 140px}
+.mo .card.narrow .btn{min-height:50px}
+@media(max-width:600px){.pact .btn{flex-basis:100%}.shr-st b{font-size:38px}}
+.dl-act .btn{padding:10px 8px;gap:6px;font-size:15px;line-height:1.3}.dl-pay b{white-space:nowrap;font-size:22px}
+@media(max-width:400px){.dl-act{grid-template-columns:1fr}}
+.trk-map .trk-chips{left:auto;right:12px;max-width:calc(100% - 76px)}
