@@ -1,0 +1,8 @@
+{
+  "name": "dawaak-recovery-api",
+  "private": true,
+  "version": "1.0.0",
+  "description": "دالة صغيرة لتوليد رابط تعيين كلمة السر للأدمن فقط (Vercel مجاني + Firebase Admin)",
+  "engines": { "node": ">=18" },
+  "dependencies": { "firebase-admin": "^12.7.0" }
+}

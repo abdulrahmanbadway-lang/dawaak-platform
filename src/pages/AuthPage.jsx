@@ -8,6 +8,7 @@ import { DocsFields } from '../docparts.jsx';
 import { getPrecise } from '../lib/where.js';
 import { Icon } from '../icons.jsx';
 import { trs } from '../lib/i18n.js';
+import { loadContact, waLink } from '../lib/site.js';
 import { PHONE_RE, kindOf, normPhone } from '../lib/phone.js';
 
 export default function AuthPage({ mode, q }) {
@@ -18,6 +19,9 @@ export default function AuthPage({ mode, q }) {
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false), [sent, setSent] = useState(false);
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
+  const [contact, setContact] = useState(null);
+  useEffect(() => { if (mode === 'login') loadContact().then(setContact); }, [mode]);
+  const helpMsg = trs("مرحباً دواك، مش قادر أدخل على حسابي.") + '\n' + trs("الرقم/البريد") + ': ' + (f.ident.trim() || '—') + '\n' + trs("محتاج استرجاع الحساب.");
   useEffect(() => {
     if (!profile) return;
     // لو المريض كان بيكمّل طلب (السلة) قبل ما يسجّل دخول، نرجّعه لنفس المكان
@@ -103,6 +107,7 @@ export default function AuthPage({ mode, q }) {
       {!err && issue && <p className="err" dir="auto">{issue}</p>}
       <button className="btn full" disabled={busy}>{busy ? '…' : mode === 'login' ? trs("دخول") : trs("إنشاء الحساب")}</button>
       {mode === 'login' && <p className="c"><a href="#/login" style={{ color: 'var(--bl2)', fontWeight: 700 }} onClick={(e) => { e.preventDefault(); setReset(true); setErr(''); }}>{trs("نسيت كلمة السر؟")}</a></p>}
+      {mode === 'login' && contact?.whatsapp && <p className="mu c sm2">{trs("نسيت البريد ومش قادر تدخل؟")}{" "}<a href={waLink(contact.whatsapp, helpMsg)} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700 }}>{trs("كلّم الدعم على واتساب")}</a></p>}
       <p className="mu c">{mode === 'login' ? <>{trs("معندكش حساب؟")}{" "}<a href="#/register">{trs("سجّل دلوقتي")}</a></> : <>{trs("عندك حساب؟")}{" "}<a href="#/login">{trs("سجّل دخول")}</a></>}</p>
       {mode === 'register' && <p className="mu c">{role === 'pharmacy' ? <a href="#/register">{trs("رجوع لإنشاء حساب عادي")}</a> : <a href="#/register?role=pharmacy">{trs("عندك صيدلية؟ انضم لدواك")}</a>}</p>}
     </form>

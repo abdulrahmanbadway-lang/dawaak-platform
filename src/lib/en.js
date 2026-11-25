@@ -1202,4 +1202,9 @@ export default {
  "سجّل دخولك الأول.": "Please sign in first.",
  "كلمة السر الحالية": "Current password",
  "هنبعت رابط تأكيد على البريد الجديد. البريد مش هيتغيّر إلا بعد ما تضغط الرابط.": "We'll send a confirmation link to the new email. It won't change until you click the link.",
+ "الرقم/البريد": "Number/email",
+ "كلّم الدعم على واتساب": "Contact support on WhatsApp",
+ "محتاج استرجاع الحساب.": "I need to recover my account.",
+ "مرحباً دواك، مش قادر أدخل على حسابي.": "Hello Dawaak, I can't sign in to my account.",
+ "نسيت البريد ومش قادر تدخل؟": "Forgot your email and can't sign in?",
 };
