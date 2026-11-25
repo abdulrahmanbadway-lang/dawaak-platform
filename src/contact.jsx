@@ -74,7 +74,7 @@ export function Reviews() {
   const load = () => getDocs(query(collection(db, 'reviews'), limit(40)))
     .then((s) => setRows(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))))
     .catch(() => setRows([]));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); addEventListener('dw-reviews', load); return () => removeEventListener('dw-reviews', load); }, []);
   const mine = user && rows ? rows.find((r) => r.id === user.uid) : null;
   const canWrite = user && profile?.role === 'patient';
   const open = () => { setF(mine ? { rating: mine.rating, text: mine.text } : { rating: 5, text: '' }); setForm(true); };

@@ -1,5 +1,6 @@
 import { SkelRail, ErrorState } from '../skeleton.jsx';
 import AdBanner from '../adbanner.jsx';
+import RateBanner from '../ratebanner.jsx';
 import { useEffect, useState } from 'react';
 import { loadHome, loadCatalog } from '../lib/featured.js';
 import { Icon } from '../icons.jsx';
@@ -104,6 +105,7 @@ export default function Home() {
       </section>
 
       <CoverStrip stats={h?.stats} />
+      <RateBanner />
       <Reviews />
 
       <section className="sec">
