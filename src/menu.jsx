@@ -18,6 +18,7 @@ export default function Drawer({ onClose, role }) {
         {L(role ? '#/rx' : '#/rx/new', 'rx', role === 'patient' ? trs("روشتاتي") : trs("ارفع روشتة"))}
         {role === 'patient' && L('#/orders', 'bag', trs("طلباتي"))}
         {L('#/shop?fav=1', 'heart', trs("المفضلة"))}
+        {role && L('#/account', 'lock', trs("حسابي"))}
         <b className="dw-h">{trs("الأقسام")}</b>
         {TREE.map((t) => (
           <div key={t.k}>

@@ -25,6 +25,7 @@ import { autoLocate } from './lib/where.js';
 import { ContactFab } from './contact.jsx';
 import Care from './care.jsx';
 import Footer from './footer.jsx';
+import Account from './pages/Account.jsx';
 import ErrorBoundary from './errorboundary.jsx';
 import { trs, useLang, setLang, applyLang } from './lib/i18n.js';
 import './ltr.css';
@@ -64,7 +65,7 @@ function Header() {
           {shopper && <a className="ic cb" href="#/shop?fav=1" aria-label={trs("المفضلة")}><Icon n="heart" s={18} />{favs.length > 0 && <i>{favs.length}</i>}</a>}
           {shopper && <a className="ic cb" href="#/cart" aria-label={trs("السلة")}><Icon n="cart" s={18} />{cnt > 0 && <i>{cnt}</i>}</a>}
           <button className="ic" onClick={toggle} aria-label={trs("الوضع الليلي")}><Icon n={theme === 'dark' ? 'sun' : 'moon'} s={18} /></button>
-          {profile ? <><span className="av">{profile.name[0]}</span><span className="un">{profile.name}</span><button className="ic" aria-label={trs("خروج")} title={trs("خروج")} onClick={() => { logout(); go('/'); }}><Icon n="logout" s={18} /></button></>
+          {profile ? <><a className="un-l" href="#/account" title={trs("حسابي")} aria-label={trs("حسابي")}><span className="av">{profile.name[0]}</span><span className="un">{profile.name}</span></a><button className="ic" aria-label={trs("خروج")} title={trs("خروج")} onClick={() => { logout(); go('/'); }}><Icon n="logout" s={18} /></button></>
             : <><a className="btn o sm" href="#/login">{trs("دخول")}</a><a className="btn sm" href="#/register">{trs("حساب جديد")}</a></>}
         </div>
       </div></header>
@@ -121,6 +122,7 @@ function Routes() {
   else if (path.startsWith('/p/')) page = <Product id={path.slice(3)} />;
   else if (path === '/cart') page = <Cart />;
   else if (path === '/brands') page = <Brands />;
+  else if (path === '/account') page = <Account />;
   else if (path === '/care') page = <Care key={q.toString()} q={q} />;
   else if (path === '/area') page = <Area key={q.toString()} q={q} />;
   else if (path === '/search') page = <Search key={q.toString()} q={q} />;

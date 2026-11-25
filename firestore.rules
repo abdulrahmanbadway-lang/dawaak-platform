@@ -11,18 +11,39 @@ service cloud.firestore {
     function active() { return signed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('blocked', false) != true; }
     function isPatient() { return active() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient'; }
 
+    // رقم الموبايل اختياري على الحساب (01XXXXXXXXX). غير موثّق بـ SMS (مش متاح في الخطة المجانية)، فهو اسم دخول مش إثبات هوية.
+    function phoneOk(d) { return !('phone' in d) || (d.phone is string && d.phone.matches('01[0125][0-9]{8}')); }
+
     match /users/{uid} {
       allow read: if (signed() && request.auth.uid == uid) || isAdmin();
       allow create: if signed() && request.auth.uid == uid && request.resource.data.role in ['patient', 'pharmacy', 'courier']
-        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'createdAt']);
+        && request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'role', 'createdAt']) && phoneOk(request.resource.data);
       allow update: if signed() && request.auth.uid == uid && request.resource.data.role == resource.data.role
-        && resource.data.get('blocked', false) != true && !touches(['blocked', 'blockedAt']);
+        && resource.data.get('blocked', false) != true && !touches(['blocked', 'blockedAt']) && phoneOk(request.resource.data);
       // الأدمن: حظر / فك حظر حساب (مش أدمن تاني) وبس
       allow update: if isAdmin() && onlyKeys(['blocked', 'blockedAt']) && request.resource.data.blocked is bool && resource.data.role != 'admin';
       // الأدمن: يرقّي حساب مريض (مش محظور) لأدمن، أو يرجّع أدمن آخر لمريض. مينفعش يغيّر دور نفسه.
       allow update: if isAdmin() && onlyKeys(['role']) && request.auth.uid != uid
         && ((resource.data.role == 'patient' && request.resource.data.role == 'admin' && resource.data.get('blocked', false) != true)
          || (resource.data.role == 'admin' && request.resource.data.role == 'patient'));
+    }
+
+    // فهرس الدخول بالرقم: loginIds/{الرقم} ← { uid, email }. أي حد يقدر يقرأ وثيقة لو عارف الرقم (get بس، مفيش list)،
+    // علشان الدخول بالرقم يشتغل قبل تسجيل الدخول. ده بيكشف إيميل صاحب الرقم لمن يعرف رقمه (تنازل معروف).
+    // الكتابة: صاحب الحساب بس، والرقم لازم يكون هو نفسه users/{uid}.phone (رقم واحد لكل حساب)، والإيميل لازم يطابق إيميل الحساب الفعلي.
+    // الإنشاء فقط لو الرقم غير محجوز (create)، فمفيش تسرّق رقم حد.
+    match /loginIds/{id} {
+      function liOk() {
+        let d = request.resource.data;
+        return id.matches('01[0125][0-9]{8}') && d.keys().hasOnly(['uid', 'email', 'updatedAt'])
+          && d.uid == request.auth.uid && d.email is string && d.email == request.auth.token.email
+          && d.updatedAt == request.time
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('phone', '') == id;
+      }
+      allow get: if true;
+      allow create: if active() && liOk();
+      allow update: if active() && resource.data.uid == request.auth.uid && liOk();
+      allow delete: if signed() && resource.data.uid == request.auth.uid;
     }
 
     match /pharmacies/{pid} {

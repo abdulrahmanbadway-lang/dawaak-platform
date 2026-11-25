@@ -8,11 +8,12 @@ import { DocsFields } from '../docparts.jsx';
 import { getPrecise } from '../lib/where.js';
 import { Icon } from '../icons.jsx';
 import { trs } from '../lib/i18n.js';
+import { PHONE_RE, kindOf, normPhone } from '../lib/phone.js';
 
 export default function AuthPage({ mode, q }) {
   const { profile, issue, login, register, resetPassword } = useAuth();
   const role = q.get('role') === 'pharmacy' ? 'pharmacy' : 'patient'; // التسجيل العادي للمرضى؛ الصيدليات بتنضم من رابط "عندك صيدلية؟"
-  const [f, setF] = useState({ name: '', email: '', password: '', pname: '', license: '', phone: '', governorate: '', city: '', address: '' });
+  const [f, setF] = useState({ name: '', email: '', ident: '', password: '', pname: '', license: '', phone: '', governorate: '', city: '', address: '' });
   const [docs, setDocs] = useState({}), [ploc, setPloc] = useState(null), [locBusy, setLocBusy] = useState(false);
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false), [sent, setSent] = useState(false);
@@ -24,30 +25,33 @@ export default function AuthPage({ mode, q }) {
     go(({ pharmacy: '/pharmacy', courier: '/courier', admin: '/admin' })[profile.role] || (/^\/[a-z]/.test(next) ? next : '/search'));
   }, [profile]);
 
+  const okId = (v) => (kindOf(v.trim()) === 'email' ? /^\S+@\S+\.\S+$/.test(v.trim()) : PHONE_RE.test(normPhone(v)));
   const sendReset = async (e) => {
     e.preventDefault(); setErr('');
-    if (!/^\S+@\S+\.\S+$/.test(f.email)) return setErr(trs("اكتب بريد إلكتروني صحيح"));
+    if (!okId(f.ident)) return setErr(trs("اكتب بريد إلكتروني أو رقم موبايل صحيح"));
     setBusy(true);
-    try { await resetPassword(f.email.trim()); setSent(true); }
+    try { await resetPassword(f.ident.trim()); setSent(true); }
     catch (x) { setErr(authError(x)); }
     setBusy(false);
   };
   const submit = async (e) => {
     e.preventDefault(); setErr('');
-    if (!/^\S+@\S+\.\S+$/.test(f.email)) return setErr(trs("اكتب بريد إلكتروني صحيح"));
+    if (mode === 'login' && !okId(f.ident)) return setErr(trs("اكتب بريد إلكتروني أو رقم موبايل صحيح"));
+    if (mode === 'register' && !/^\S+@\S+\.\S+$/.test(f.email)) return setErr(trs("اكتب بريد إلكتروني صحيح"));
+    if (mode === 'register' && !PHONE_RE.test(normPhone(f.phone))) return setErr(trs("اكتب رقم موبايل مصري صحيح (مثال 01012345678)"));
     if (f.password.length < 6) return setErr(trs("كلمة المرور 6 أحرف على الأقل"));
     if (mode === 'register') {
       if (f.name.trim().length < 2) return setErr(trs("اكتب اسمك"));
-      if (role === 'pharmacy' && (!f.pname.trim() || !f.license.trim() || !f.phone.trim() || !f.governorate || !f.city || !f.address.trim()))
+      if (role === 'pharmacy' && (!f.pname.trim() || !f.license.trim() || !f.governorate || !f.city || !f.address.trim()))
         return setErr(trs("كمّل بيانات الصيدلية (الاسم، رقم الترخيص، الموبايل، المحافظة، المدينة، العنوان)"));
       if (role === 'pharmacy' && !ploc) return setErr(trs("حدّد موقع الصيدلية على الخريطة (لازم تكون في الصيدلية وقت التسجيل)"));
       if (role === 'pharmacy' && !(docs.commercial && docs.tax && docs.license)) return setErr(trs("ارفع المستندات الرسمية الثلاثة: السجل التجاري، البطاقة الضريبية، رخصة الصيدلية"));
     }
     setBusy(true);
     try {
-      if (mode === 'login') await login(f.email, f.password);
-      else await register({ name: f.name.trim(), email: f.email, password: f.password, role,
-        pharmacy: role === 'pharmacy' ? { name: f.pname.trim(), license: f.license.trim(), phone: f.phone.trim(), governorate: f.governorate, city: f.city, address: f.address.trim(), hours: '', lat: ploc ? ploc.lat : null, lng: ploc ? ploc.lng : null } : null, docs: role === 'pharmacy' ? docs : null });
+      if (mode === 'login') await login(f.ident.trim(), f.password);
+      else await register({ name: f.name.trim(), email: f.email.trim(), phone: f.phone, password: f.password, role,
+        pharmacy: role === 'pharmacy' ? { name: f.pname.trim(), license: f.license.trim(), phone: normPhone(f.phone), governorate: f.governorate, city: f.city, address: f.address.trim(), hours: '', lat: ploc ? ploc.lat : null, lng: ploc ? ploc.lng : null } : null, docs: role === 'pharmacy' ? docs : null });
       toast(trs("أهلاً بيك في دواك 👋"));
     } catch (x) { setErr(authError(x)); }
     setBusy(false);
@@ -59,8 +63,8 @@ export default function AuthPage({ mode, q }) {
         <p className="mu">{trs("لو البريد ده مسجّل عندنا، هيوصلك رابط لتعيين كلمة مرور جديدة. افتح الرسالة واضغط على الرابط. لو مش لاقيها شوف مجلد الرسائل غير المرغوبة (Spam).")}</p>
         <button type="button" className="btn full" onClick={() => { setReset(false); setSent(false); }}>{trs("رجوع لتسجيل الدخول")}</button>
       </> : <>
-        <p className="mu">{trs("اكتب بريدك الإلكتروني اللي سجّلت بيه وهنبعتلك رابط لتعيين كلمة مرور جديدة.")}</p>
-        <Field label={trs("البريد الإلكتروني")} name="email" type="email" v={f.email} on={set('email')} autoComplete="email" dir="ltr" />
+        <p className="mu">{trs("اكتب بريدك الإلكتروني أو رقم موبايلك اللي سجّلت بيه وهنبعتلك رابط لتعيين كلمة مرور جديدة على البريد.")}</p>
+        <Field label={trs("البريد الإلكتروني أو رقم الموبايل")} name="ident" v={f.ident} on={set('ident')} autoComplete="username" dir="ltr" />
         {err && <p className="err">{err}</p>}
         <button className="btn full" disabled={busy}>{busy ? '…' : trs("إرسال رابط التعيين")}</button>
         <p className="mu c"><a href="#/login" onClick={(e) => { e.preventDefault(); setReset(false); setErr(''); }}>{trs("رجوع لتسجيل الدخول")}</a></p>
@@ -72,13 +76,17 @@ export default function AuthPage({ mode, q }) {
       <h2>{mode === 'login' ? trs("تسجيل الدخول") : role === 'pharmacy' ? trs("انضمام صيدلية لدواك") : trs("إنشاء حساب جديد")}</h2>
       {mode === 'register' && role === 'pharmacy' && <p className="mu sm2">{trs("ابعتلنا بيانات صيدليتك، وهنراجع الترخيص ونوثّقها قبل ما تظهر كصيدلية موثّقة.")}</p>}
       {mode === 'register' && <Field label={role === 'pharmacy' ? trs("اسم المسؤول") : trs("الاسم")} name="name" v={f.name} on={set('name')} autoComplete="name" />}
-      <Field label={trs("البريد الإلكتروني")} name="email" type="email" v={f.email} on={set('email')} autoComplete="email" dir="ltr" />
+      {mode === 'login'
+        ? <Field label={trs("البريد الإلكتروني أو رقم الموبايل")} name="ident" v={f.ident} on={set('ident')} autoComplete="username" dir="ltr" inputMode="email" />
+        : <>
+          <Field label={trs("البريد الإلكتروني")} name="email" type="email" v={f.email} on={set('email')} autoComplete="email" dir="ltr" />
+          <Field label={trs("رقم الموبايل")} name="phone" type="tel" v={f.phone} on={set('phone')} autoComplete="tel" dir="ltr" inputMode="tel" hint={trs("تقدر تسجّل دخول بيه أو بالبريد، لو حصلت مشكلة في واحد منهم.")} />
+        </>}
       <Field label={trs("كلمة المرور")} name="password" type="password" v={f.password} on={set('password')} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} dir="ltr" />
       {mode === 'register' && role === 'pharmacy' && <>
         <h3>{trs("بيانات الصيدلية")}</h3>
         <Field label={trs("اسم الصيدلية")} name="pname" v={f.pname} on={set('pname')} />
         <Field label={trs("رقم ترخيص الصيدلية")} name="license" v={f.license} on={set('license')} hint={trs("هيتم التحقق منه قبل توثيق الصيدلية")} />
-        <Field label={trs("رقم الموبايل")} name="phone" type="tel" v={f.phone} on={set('phone')} dir="ltr" />
         <Field label={trs("المحافظة")} name="governorate" type="select" options={GOV} v={f.governorate} on={(v) => setF((s) => ({ ...s, governorate: v, city: '' }))} />
         <Field label={trs("المدينة / المنطقة")} name="city" type="select" options={citiesOf(f.governorate)} v={f.city} on={set('city')} />
         <Field label={trs("العنوان بالتفصيل")} name="address" v={f.address} on={set('address')} />

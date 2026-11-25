@@ -202,3 +202,5 @@ main .card+.card,main .card+.trk-map,main .trk-map+.card{margin-top:var(--s4)}
 .dl-act .btn{padding:10px 8px;gap:6px;font-size:15px;line-height:1.3}.dl-pay b{white-space:nowrap;font-size:22px}
 @media(max-width:400px){.dl-act{grid-template-columns:1fr}}
 .trk-map .trk-chips{left:auto;right:12px;max-width:calc(100% - 76px)}
+.un-l{display:inline-flex;align-items:center;gap:8px;color:inherit;text-decoration:none;min-height:44px}.un-l:hover .un{text-decoration:underline}
+.acct{display:grid;gap:14px;max-width:520px;margin:20px auto}.acct .card{display:grid;gap:10px}.acct h2,.acct h3{margin:0}.acct .ok{color:var(--gr);font-weight:700;margin:0;line-height:1.7}
