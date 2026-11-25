@@ -1,4 +1,5 @@
 import { SkelRail, ErrorState } from '../skeleton.jsx';
+import AdBanner from '../adbanner.jsx';
 import { useEffect, useState } from 'react';
 import { loadHome, loadCatalog } from '../lib/featured.js';
 import { Icon } from '../icons.jsx';
@@ -64,6 +65,8 @@ export default function Home() {
       {shop.length > 0 && <OffersRail products={shop} phs={cat?.pharmacies} />}
       {shop.length > 0 && <BrandsRow products={shop} />}
       {shop.length > 0 && <Rails products={shop} phs={cat?.pharmacies} />}
+
+      <AdBanner />
 
       <NearSection phs={allPhs} />
 
