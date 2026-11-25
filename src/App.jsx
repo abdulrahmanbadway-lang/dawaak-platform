@@ -23,6 +23,7 @@ import { usePresence } from './lib/presence.js';
 import Area from './pages/Area.jsx';
 import { autoLocate } from './lib/where.js';
 import { ContactFab } from './contact.jsx';
+import Care from './care.jsx';
 import ErrorBoundary from './errorboundary.jsx';
 import { trs, useLang, setLang, applyLang } from './lib/i18n.js';
 import './ltr.css';
@@ -74,7 +75,7 @@ function Header() {
 const Footer = () => (
   <footer><div className="w fin">
     <div className="fbrand"><img src="/assets/full.png" alt={trs("دواك")} /><div><b>{trs("دواك · Dawaak")}</b><p className="mu sm2">{trs("منصة تربط صيدليات مصر: ابحث عن دواك، اعرف أقرب صيدلية، واطلبه.")}</p></div></div>
-    <div className="fcol"><a href="#/search">{trs("ابحث عن دوا")}</a><a href="#/register?role=pharmacy">{trs("سجّل صيدليتك")}</a><a href="#/login">{trs("دخول")}</a></div>
+    <div className="fcol"><a href="#/search">{trs("ابحث عن دوا")}</a><a href="#/care">{trs("رعايتك")}</a><a href="#/register?role=pharmacy">{trs("سجّل صيدليتك")}</a><a href="#/login">{trs("دخول")}</a></div>
     <div className="fcol sm2" dir="ltr"><span>Graduation Project 2027</span><span>Al-Gazeera Academy</span><span>Class of 2027 Graduates</span></div>
   </div><div className="w fnote">{trs("المحتوى إرشادي ولا يغني عن استشارة الطبيب. في الطوارئ اتصل بالإسعاف 123. بنسجّل عنوان IP والصفحة الحالية والمنطقة التقريبية (لو سمحت بتحديد الموقع) لأغراض الأمان والإحصاء.")}</div></footer>
 );
@@ -126,6 +127,7 @@ function Routes() {
   else if (path.startsWith('/p/')) page = <Product id={path.slice(3)} />;
   else if (path === '/cart') page = <Cart />;
   else if (path === '/brands') page = <Brands />;
+  else if (path === '/care') page = <Care key={q.toString()} q={q} />;
   else if (path === '/area') page = <Area key={q.toString()} q={q} />;
   else if (path === '/search') page = <Search key={q.toString()} q={q} />;
   else if (path === '/rx' || path === '/rx/new') page = role === 'patient' ? <PatientRx path={path} q={q} /> : <Need role="patient" />;

@@ -68,6 +68,13 @@ export default function Home() {
       <NearSection phs={allPhs} />
 
       <section className="sec">
+        <div className="card row g between wrap">
+          <div><h3>{trs("رعايتك")}</h3><p className="mu">{trs("مساعد صيدلي لتقييم الأعراض مبدئيًا، وتذكير بتجديد أدويتك المزمنة قبل ما تخلص.")}</p></div>
+          <div className="row g wrap"><a className="btn" href="#/care">{trs("المساعد الصيدلي")}</a><a className="btn o" href="#/care?t=refill">{trs("تذكير الدوا الشهري")}</a></div>
+        </div>
+      </section>
+
+      <section className="sec">
         <h2>{trs("إزاي")}{" "}<span className="gr">{trs("دواك")}</span> {trs("بيشتغل؟")}</h2>
         <div className="how">{STEPS.map(([i, t, d], k) => <div className="card" key={k}><div className="hn"><Icon n={i} s={24} /></div><h3>{trs(t)}</h3><p className="mu">{trs(d)}</p></div>)}</div>
       </section>
