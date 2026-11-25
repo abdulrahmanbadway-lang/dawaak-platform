@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './auth.jsx';
+import { Icon } from './icons.jsx';
 import { toast } from './ui.jsx';
 import { trs } from './lib/i18n.js';
 import { loadContact, telLink, waLink } from './lib/site.js';
