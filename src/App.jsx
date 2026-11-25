@@ -24,6 +24,7 @@ import Area from './pages/Area.jsx';
 import { autoLocate } from './lib/where.js';
 import { ContactFab } from './contact.jsx';
 import Care from './care.jsx';
+import Footer from './footer.jsx';
 import ErrorBoundary from './errorboundary.jsx';
 import { trs, useLang, setLang, applyLang } from './lib/i18n.js';
 import './ltr.css';
@@ -72,13 +73,6 @@ function Header() {
     </>
   );
 }
-const Footer = () => (
-  <footer><div className="w fin">
-    <div className="fbrand"><img src="/assets/full.png" alt={trs("دواك")} /><div><b>{trs("دواك · Dawaak")}</b><p className="mu sm2">{trs("منصة تربط صيدليات مصر: ابحث عن دواك، اعرف أقرب صيدلية، واطلبه.")}</p></div></div>
-    <div className="fcol"><a href="#/search">{trs("ابحث عن دوا")}</a><a href="#/care">{trs("رعايتك")}</a><a href="#/register?role=pharmacy">{trs("سجّل صيدليتك")}</a><a href="#/login">{trs("دخول")}</a></div>
-    <div className="fcol sm2" dir="ltr"><span>Graduation Project 2027</span><span>Al-Gazeera Academy</span><span>Class of 2027 Graduates</span></div>
-  </div><div className="w fnote">{trs("المحتوى إرشادي ولا يغني عن استشارة الطبيب. في الطوارئ اتصل بالإسعاف 123. بنسجّل عنوان IP والصفحة الحالية والمنطقة التقريبية (لو سمحت بتحديد الموقع) لأغراض الأمان والإحصاء.")}</div></footer>
-);
 const ROLE_HOME = { patient: '/orders', pharmacy: '/pharmacy', courier: '/courier', admin: '/admin' };
 const ROLE_NAME = () => ({ patient: trs("مريض"), pharmacy: trs("صيدلية"), courier: trs("مندوب"), admin: trs("أدمن") });
 // صفحة محتاجة دور معيّن: زائر → دعوة لتسجيل الدخول، مسجّل بدور تاني → "غير مصرّح" بشرح واضح وزر لصفحته
